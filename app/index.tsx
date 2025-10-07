@@ -6,7 +6,7 @@ import { Link } from 'expo-router';
 export default function Home() {
   return (
     <View style={g.screen}>
-      <Image source={require('~/assets/icon.png')} style={{ width: 72, height: 72, borderRadius: 16, marginBottom: 16 }} />
+      <Image source={require('../assets/icon.png')} style={{ width: 72, height: 72, borderRadius: 16, marginBottom: 16 }}/>
       <Text style={g.h1}>The Life Place</Text>
       <Text style={g.p}>Come. See. Jesus.</Text>
       <View style={{ height: 12 }} />
