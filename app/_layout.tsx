@@ -1,30 +1,33 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useFonts } from 'expo-font';
+// app/_layout.tsx
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import BackButton from '../components/BackButton'; // path is correct if components/ is at project root
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
-    Montserrat: require('~/assets/fonts/Montserrat-Regular.ttf'),
-    'Montserrat-SemiBold': require('~/assets/fonts/Montserrat-SemiBold.ttf'),
-    Inter: require('~/assets/fonts/Inter-Regular.ttf'),
-    'Inter-Medium': require('~/assets/fonts/Inter-Medium.ttf'),
-    'Inter-SemiBold': require('~/assets/fonts/Inter-SemiBold.ttf'),
-  });
-  if (!loaded) return null;
-
   return (
     <>
       <StatusBar style="dark" />
-      <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: '#B3282D' }}>
-        <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({color,size}) => <Ionicons name="home" color={color} size={size} /> }} />
-        <Tabs.Screen name="sermons" options={{ title: 'Sermons', tabBarIcon: ({color,size}) => <Ionicons name="mic" color={color} size={size} /> }} />
-        <Tabs.Screen name="give" options={{ title: 'Give', tabBarIcon: ({color,size}) => <Ionicons name="heart" color={color} size={size} /> }} />
-        <Tabs.Screen name="prayer" options={{ title: 'Prayer', tabBarIcon: ({color,size}) => <Ionicons name="hand-left-outline" color={color} size={size} /> }} />
-        <Tabs.Screen name="events" options={{ title: 'Events', tabBarIcon: ({color,size}) => <Ionicons name="calendar" color={color} size={size} /> }} />
-        <Tabs.Screen name="devotionals" options={{ title: 'Devotions', tabBarIcon: ({color,size}) => <Ionicons name="book" color={color} size={size} /> }} />
-        <Tabs.Screen name="about" options={{ title: 'About', tabBarIcon: ({color,size}) => <Ionicons name="information-circle" color={color} size={size} /> }} />
-      </Tabs>
+      <Stack
+        screenOptions={{
+          headerShown: true,                // default: show header
+          headerStyle: { backgroundColor: '#FFFFFF' },
+          headerTitleStyle: { color: '#111827', fontSize: 17 },
+          headerShadowVisible: false,       // flat, modern
+          headerLeft: () => <BackButton />, // custom back appears whenever we can go back
+        }}
+      >
+        {/* Tabs group should not show a header */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+        {/* Other stack routes (titles can be overridden inside each file if you want) */}
+        <Stack.Screen name="about" options={{ title: 'About' }} />
+        <Stack.Screen name="devotionals" options={{ title: 'Devotionals' }} />
+        <Stack.Screen name="events" options={{ title: 'Events' }} />
+        <Stack.Screen name="live" options={{ title: 'Live' }} />
+        <Stack.Screen name="meet-schulter-jenny" options={{ title: 'Schulter & Jenny' }} />
+        <Stack.Screen name="blog" options={{ title: 'Our Blog' }} />
+        <Stack.Screen name="messages" options={{ title: 'Messages' }} />
+      </Stack>
     </>
   );
 }

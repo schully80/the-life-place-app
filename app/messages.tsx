@@ -43,7 +43,7 @@ export default function Sermons() {
 
   return (
     <View style={g.screen}>
-      <Text style={g.h1}>Sermons</Text>
+      <Text style={g.h1}>Messages</Text>
       {loading && <ActivityIndicator />}
       {error && <Text style={g.p}>Error: {error}</Text>}
       {!loading && !error && (
