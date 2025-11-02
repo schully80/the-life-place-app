@@ -30,6 +30,7 @@ const WORD_LIMIT = 75;
 export default function Prayer() {
   const [name, setName] = useState('');
   const [request, setRequest] = useState('');
+  const [consent, setConsent] = useState(false); // ✅ NEW
 
   const wordsUsed = useMemo(
     () => request.trim().split(/\s+/).filter(Boolean).length,
@@ -39,13 +40,16 @@ export default function Prayer() {
   const wordsRemaining = Math.max(WORD_LIMIT - wordsUsed, 0);
   const overBy = Math.max(wordsUsed - WORD_LIMIT, 0);
   const overLimit = wordsUsed > WORD_LIMIT;
-  const canSubmit = name.trim().length > 1 && wordsUsed > 0 && !overLimit;
+
+  // ✅ UPDATED: require consent to enable submit
+  const canSubmit = name.trim().length > 1 && wordsUsed > 0 && !overLimit && consent;
 
   const onSubmit = () => {
     if (!canSubmit) return;
     Alert.alert('Request sent', 'Thank you—we will pray with you.');
     setName('');
     setRequest('');
+    setConsent(false);
   };
 
   return (
@@ -61,7 +65,7 @@ export default function Prayer() {
           source={require('../../assets/prayer-bg.png')}
           style={styles.bg}
           resizeMode="cover"
-          imageStyle={{ opacity: 1.00}}
+          imageStyle={{ opacity: 1.0 }}
         >
           {/* subtle dark overlay to help contrast */}
           <View style={styles.overlay} />
@@ -136,6 +140,32 @@ export default function Prayer() {
                   )}
                 </View>
 
+                {/* ✅ Consent checkbox row (required) */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => setConsent(!consent)}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 8,
+                      backgroundColor: consent ? COLORS.brand : '#FFF',
+                    }}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: consent }}
+                  >
+                    {consent ? <Ionicons name="checkmark" size={16} color="#FFF" /> : null}
+                  </TouchableOpacity>
+
+                  <Text style={{ flex: 1, color: '#374151', fontFamily: 'Montserrat-Regular', fontSize: 12 }}>
+                    I consent to The Life Place processing my request for prayer and contacting me if needed.
+                  </Text>
+                </View>
+
                 {/* Compact CTA */}
                 <TouchableOpacity
                   onPress={onSubmit}
@@ -201,7 +231,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    width: '100%', // ensure full width so counter can shift right
+    width: '100%',
   },
   label: {
     fontFamily: 'Montserrat-Medium',
@@ -216,7 +246,7 @@ const styles = StyleSheet.create({
 
   input: {
     borderWidth: 1,
-    borderColor:'rgba(255,255,255,0.28)',
+    borderColor: 'rgba(255,255,255,0.28)',
     backgroundColor: 'rgba(255,255,255,0.72)',
     borderRadius: 12,
     paddingHorizontal: 14,

@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="meet-schulter-jenny" options={{ title: 'Schulter & Jenny' }} />
         <Stack.Screen name="blog" options={{ title: 'Our Blog' }} />
         <Stack.Screen name="messages" options={{ title: 'Messages' }} />
+        <Stack.Screen name="our-welcome" options={{ title: 'Our Welcome' }} />
       </Stack>
     </>
   );

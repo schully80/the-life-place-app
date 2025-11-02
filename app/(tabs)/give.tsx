@@ -28,7 +28,6 @@ export default function Give() {
     <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 24 }}>
       {/* Hero */}
       <View style={styles.hero}>
-        <Text style={styles.h1}>Generosity</Text>
         <Text style={styles.heroP}>
           Generosity is our expression of who Jesus is and what He does.
         </Text>
