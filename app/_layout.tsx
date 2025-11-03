@@ -9,11 +9,17 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
-          headerShown: true,                // default: show header
+          headerShown: true, // default: show header
           headerStyle: { backgroundColor: '#FFFFFF' },
-          headerTitleStyle: { color: '#111827', fontSize: 17 },
-          headerShadowVisible: false,       // flat, modern
-          headerLeft: () => <BackButton />, // custom back appears whenever we can go back
+          headerTitleStyle: {
+            color: '#111827',
+            fontSize: 17,
+            fontFamily: 'Montserrat-SemiBold', // ✅ brand font
+          },
+          headerTintColor: '#111827',          // ✅ icon/back arrow colour
+          headerBackTitleVisible: false,       // ✅ cleaner back
+          headerShadowVisible: false,          // flat, modern
+          headerLeft: () => <BackButton />,    // custom back appears when we can go back
         }}
       >
         {/* Tabs group should not show a header */}

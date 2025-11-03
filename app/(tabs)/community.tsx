@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 const IMG = {
   welcome: require('../../assets/community-welcome.jpg'),
   about: require('../../assets/sandton-skyline.jpg'),
-  ministries: require('../../assets/community-ministries.jpg'),
+  ministries: require('../../assets/community-ministries2.jpg'),
   give: require('../../assets/community-give-2.jpg'),
   messages: require('../../assets/community-messages.jpg'),
   follow: require('../../assets/community-follow.jpg'),
@@ -78,7 +78,7 @@ export default function Community() {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Tile title="OUR WELCOME" image={IMG.welcome} onPress={() => router.push('/about')} />
+        <Tile title="OUR WELCOME" image={IMG.welcome} onPress={() => router.push('/our-welcome')} />
         <Tile title="ABOUT US" image={IMG.about} onPress={() => router.push('/about')} />
         <Tile title="MINISTRIES" image={IMG.ministries} onPress={() => router.push('/ministries')} />
         <Tile title="GENEROSITY" image={IMG.give} onPress={() => router.push('/give')} />
@@ -154,9 +154,9 @@ const styles = StyleSheet.create({
   tileTitle: {
     color: '#FFFFFF',
     fontFamily: 'Montserrat-Bold',
-    fontSize: 20,
+    fontSize: 24,
     textAlign: 'center',
-    letterSpacing: 0.2,
+    letterSpacing: 3.2,
   },
 
   // Small, subtle privacy link separated from tiles
