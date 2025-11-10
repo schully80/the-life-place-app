@@ -87,7 +87,7 @@ export default function Home() {
 
   return (
     <ImageBackground
-      source={require('../../assets/sandton-skyline.png')}
+      source={require('../../assets/sandton-skyline.jpg')}
       style={styles.bg}
       resizeMode="cover"
     >
