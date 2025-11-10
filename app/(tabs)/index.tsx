@@ -16,6 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 
+const TILE_HEIGHT = 160;
+const TILE_RADIUS = 16;
+
 type YTItem = {
   id: { videoId?: string } | string;
   snippet: {
@@ -69,7 +72,7 @@ export default function Home() {
     };
   }, [YOUTUBE_API_KEY, YOUTUBE_CHANNEL_ID]);
 
-  // 2-column card sizing
+  // 2-column card sizing for messages
   const CARD_GAP = 12;
   const H_PADDING = 24;
   const cardWidth = useMemo(() => {
@@ -90,7 +93,7 @@ export default function Home() {
     >
       <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
         {/* ✅ Full-width white header (logo only) */}
-        <View style={[styles.headerWrap, { paddingTop: insets.top + EXTRA_HEADER_OFFSET}]}>
+        <View style={[styles.headerWrap, { paddingTop: insets.top + EXTRA_HEADER_OFFSET }]}>
           <Image
             source={require('../../assets/logo.png')}
             style={styles.logo}
@@ -100,7 +103,6 @@ export default function Home() {
 
         {/* Page body */}
         <View style={styles.body}>
-     
           {/* 📺 Latest Messages */}
           <Text style={styles.sectionTitle}>FEATURED</Text>
 
@@ -121,7 +123,7 @@ export default function Home() {
             </View>
           ) : (
             <View style={{ gap: CARD_GAP }}>
-              {/* manual 2-column layout to keep your ScrollView */}
+              {/* first row */}
               <View style={{ flexDirection: 'row', gap: CARD_GAP, marginBottom: CARD_GAP }}>
                 {videos.slice(0, 2).map((item, i) => {
                   const thumb =
@@ -136,7 +138,9 @@ export default function Home() {
                       style={[styles.card, { width: cardWidth }]}
                     >
                       <Image source={{ uri: thumb }} style={styles.cardImage} resizeMode="cover" />
-                      <Text numberOfLines={2} style={styles.cardTitle}>{item.snippet.title}</Text>
+                      <Text numberOfLines={2} style={styles.cardTitle}>
+                        {item.snippet.title}
+                      </Text>
                       <View style={styles.cardMeta}>
                         <Ionicons name="time-outline" size={14} color="#6B7280" />
                         <Text style={styles.cardMetaText}>
@@ -148,7 +152,7 @@ export default function Home() {
                 })}
               </View>
 
-              {/* render the rest in rows of two */}
+              {/* remaining rows */}
               {Array.from({ length: Math.ceil((videos.length - 2) / 2) }).map((_, rowIdx) => {
                 const start = 2 + rowIdx * 2;
                 const row = videos.slice(start, start + 2);
@@ -167,7 +171,9 @@ export default function Home() {
                           style={[styles.card, { width: cardWidth }]}
                         >
                           <Image source={{ uri: thumb }} style={styles.cardImage} resizeMode="cover" />
-                          <Text numberOfLines={2} style={styles.cardTitle}>{item.snippet.title}</Text>
+                          <Text numberOfLines={2} style={styles.cardTitle}>
+                            {item.snippet.title}
+                          </Text>
                           <View style={styles.cardMeta}>
                             <Ionicons name="time-outline" size={14} color="#6B7280" />
                             <Text style={styles.cardMetaText}>
@@ -184,33 +190,33 @@ export default function Home() {
             </View>
           )}
 
-          {/* 🌿 Feature Cards */}
+          {/* 🌿 Feature Cards (bigger but spaced, not touching) */}
           <View style={[styles.cards, { marginTop: 24 }]}>
             <Link href="/events" asChild>
               <TouchableOpacity style={styles.cardSingle}>
-                <Ionicons name="calendar-outline" size={26} color="#B3282D" />
-                <Text style={styles.cardText}>Events</Text>
+                <Ionicons name="calendar-outline" size={28} color="#B3282D" />
+                <Text style={styles.cardText}>EVENTS</Text>
               </TouchableOpacity>
             </Link>
 
             <Link href="/devotionals" asChild>
               <TouchableOpacity style={styles.cardSingle}>
-                <Ionicons name="book-outline" size={26} color="#B3282D" />
-                <Text style={styles.cardText}>Devotionals</Text>
+                <Ionicons name="book-outline" size={28} color="#B3282D" />
+                <Text style={styles.cardText}>DEVOTIONALS</Text>
               </TouchableOpacity>
             </Link>
 
             <Link href="/meet-schulter-jenny" asChild>
               <TouchableOpacity style={styles.cardSingle}>
-                <Ionicons name="people-outline" size={26} color="#B3282D" />
-                <Text style={styles.cardText}>Schulter & Jenny</Text>
+                <Ionicons name="people-outline" size={28} color="#B3282D" />
+                <Text style={styles.cardText}>SCHULTER AND JENNY</Text>
               </TouchableOpacity>
             </Link>
 
             <Link href="/blog" asChild>
               <TouchableOpacity style={styles.cardSingle}>
-                <Ionicons name="newspaper-outline" size={26} color="#B3282D" />
-                <Text style={styles.cardText}>Our Blog</Text>
+                <Ionicons name="newspaper-outline" size={28} color="#B3282D" />
+                <Text style={styles.cardText}>OUR BLOG</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -241,97 +247,87 @@ const styles = StyleSheet.create({
   // Body
   body: { paddingHorizontal: PAGE_PADDING, paddingTop: 20 },
 
-  // Quick Actions
-  quickActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+  // Section title (right aligned)
+  sectionTitle: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 18,
+    color: '#111827',
+    marginBottom: 10,
+    textAlign: 'right',
+    alignSelf: 'flex-end',
   },
-  quickBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 30,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFFEE',
-  },
-  quickText: {
-    fontFamily: 'Inter-SemiBold',
-    color: '#B3282D',
-    fontSize: 15,
-  },
-
-  // Section
-sectionTitle: {
-  fontFamily: 'Montserrat-SemiBold',
-  fontSize: 18,
-  color: '#111827',
-  marginBottom: 10,
-
-  // ⬇️ right-align
-  textAlign: 'right',
-  alignSelf: 'flex-end',
-  // If the parent uses row/center layouts and it still won’t budge:
-  // width: '100%',
-},
-
 
   // Message cards (grid)
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
+    borderRadius: TILE_RADIUS,
+    height: TILE_HEIGHT,               // bigger tiles, still spaced
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: '#EEF2F7',
+    borderColor: '#F1F5F9',            // fixed subtle border colour
+    marginBottom: 14,                  // tiles don’t touch
+    width: '100%',
   },
   cardImage: {
     width: '100%',
-    height: 110,
+    height: 120,                       // a bit taller to match larger tile
     backgroundColor: '#F3F4F6',
+    borderRadius: 10,
   },
   cardTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: '#111827',
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    minHeight: 44,
-  },
+  fontFamily: 'Inter-SemiBold',
+  fontSize: 14,
+  color: '#111827',
+  paddingTop: 10,
+  minHeight: 44,
+  textAlign: 'center',        // ⬅️ center the title
+},
   cardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-  },
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 6,
+  paddingBottom: 10,
+  justifyContent: 'center',    // ⬅️ center the icon + date row
+},
   cardMetaText: {
     fontSize: 12,
     color: '#6B7280',
   },
 
   // Feature cards (single-column)
-  cards: { flexDirection: 'column', gap: 16 },
+  cards: {
+    flexDirection: 'column',
+    gap: 0, // using marginBottom on each card
+  },
   cardSingle: {
-    backgroundColor: '#FFFFFFEE',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    paddingVertical: 18,
+    paddingVertical: 22,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    minHeight: 160,         // bigger like you wanted
+    marginBottom: 18,       // spacing so they don’t touch
   },
   cardText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 20,
     color: '#111827',
     marginTop: 8,
+    letterSpacing: 3.0,
+
   },
 
   // States

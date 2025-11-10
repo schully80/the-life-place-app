@@ -9,10 +9,16 @@ const { width: W } = Dimensions.get('window');
 export default function OurWelcome() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Title */}
-      <Text style={styles.title}>Our Welcome</Text>
+      {/* ⬆️ Photo first (top) */}
+      <View style={styles.imageWrap} accessibilityLabel="Welcome to The Life Place">
+        <Image
+          source={require('../assets/community-welcome.jpg')}
+          style={styles.image}
+          resizeMode="cover"
+        />
+      </View>
 
-      {/* Welcome paragraph with red emphasis words */}
+      {/* ⬇️ Extra breathing room pulled away from the image */}
       <Text style={styles.lead}>
         We open wide our doors with a welcome from
         <Text style={styles.emph}> Jesus</Text>,{'\n'}
@@ -22,19 +28,9 @@ export default function OurWelcome() {
         the <Text style={styles.emph}>Friend</Text> of sinners.
       </Text>
 
-      {/* Slogan */}
       <Text style={styles.slogan}>
         Come. See. <Text style={styles.sloganEmph}>Jesus</Text>
       </Text>
-
-      {/* Image (16:12 like your Astro block) */}
-      <View style={styles.imageWrap} accessibilityLabel="Welcome to The Life Place">
-        <Image
-          source={require('../assets/community-welcome.jpg')}
-          style={styles.image}
-          resizeMode="cover"
-        />
-      </View>
     </ScrollView>
   );
 }
@@ -50,47 +46,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
-  title: {
-    textAlign: 'center',
-    fontFamily: 'Montserrat-SemiBold', // or -Bold if you prefer
-    fontSize: 34, // ~ text-4xl mobile, scales well
-    color: '#111827',
-    lineHeight: 40,
-    marginBottom: 16,
-  },
-
-  lead: {
-    textAlign: 'center',
-    fontFamily: 'Montserrat-Regular',
-    fontSize: 18,      // ~ text-xl
-    lineHeight: 28,    // comfortable reading
-    color: WARM_GRAY,
-    maxWidth: MAX_W,
-  },
-  emph: {
-    color: BRAND_RED,
-    fontFamily: 'Montserrat-SemiBold',
-  },
-
-  slogan: {
-    marginTop: 18,
-    textAlign: 'center',
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 20,     // ~ sm:text-2xl
-    color: WARM_GRAY,
-  },
-  sloganEmph: {
-    color: BRAND_RED,
-    fontFamily: 'Montserrat-Bold',
-  },
-
+  // Head image block (keep this same across screens that use this pattern)
   imageWrap: {
     width: '100%',
     maxWidth: MAX_W,
-    aspectRatio: 16 / 12,
+    aspectRatio: 16 / 12, // 🔁 use same ratio wherever you show header/top photos
     borderRadius: 16,
     overflow: 'hidden',
-    marginTop: 24,
+    marginTop: 8,
+    marginBottom: 20, // ⬅️ creates separation from the copy below
     shadowColor: '#000',
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -101,5 +65,32 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     opacity: 0.95,
+  },
+
+  lead: {
+    textAlign: 'center',
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 16,
+    lineHeight: 28,
+    color: WARM_GRAY,
+    maxWidth: MAX_W,
+    marginTop: 2,     // small nudge in case other screens add tighter spacing
+    marginBottom: 12, // keep copy tidy before slogan
+  },
+  emph: {
+    color: BRAND_RED,
+    fontFamily: 'Montserrat-SemiBold',
+  },
+
+  slogan: {
+    marginTop: 6,
+    textAlign: 'center',
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 18,
+    color: WARM_GRAY,
+  },
+  sloganEmph: {
+    color: BRAND_RED,
+    fontFamily: 'Montserrat-Bold',
   },
 });

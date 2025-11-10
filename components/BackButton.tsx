@@ -1,43 +1,91 @@
+// components/BackButton.tsx
 import React from 'react';
-import { Pressable, Text, StyleSheet, View } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import { BlurView } from 'expo-blur';
 
-export default function BackButton() {
-  const navigation = useNavigation();
-  const canGoBack = navigation.canGoBack?.() ?? false;
+type Props = {
+  label?: string;
+  color?: string;         // for plain variant
+  fallbackTo?: string;    // used when no history
+  glass?: boolean;        // round glass style like other headers
+  onPress?: () => void;   // custom handler (overrides default back logic)
+};
 
-  if (!canGoBack) return null;
+export default function BackButton({
+  label,
+  color = '#111827',
+  fallbackTo = '/community',
+  glass = false,
+  onPress,
+}: Props) {
+  const router = useRouter();
 
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+      return;
+    }
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace(fallbackTo);
+    }
+  };
+
+  if (glass) {
+    const SIZE = 36;
+    return (
+      <View style={styles.glassWrap} accessibilityRole="button" accessibilityLabel={label ? `Back, ${label}` : 'Back'}>
+        <BlurView intensity={28} tint="light" style={StyleSheet.absoluteFillObject} />
+        <TouchableOpacity
+          onPress={handlePress}
+          style={styles.glassBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={18} color="#111827" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Plain variant
   return (
-    <Pressable
-      onPress={() => navigation.goBack()}
-      style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
-      android_ripple={{ color: 'rgba(0,0,0,0.06)', borderless: true }}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 12 }}
+    <TouchableOpacity
+      onPress={handlePress}
+      style={styles.plainWrap}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       accessibilityRole="button"
-      accessibilityLabel="Go back"
+      accessibilityLabel={label ? `Back, ${label}` : 'Back'}
     >
-      <Ionicons name="chevron-back" size={22} color="#111827" />
-      <Text style={styles.text}>Back</Text>
-    </Pressable>
+      <Ionicons name="chevron-back" size={22} color={color} />
+      {label ? <Text style={[styles.plainLabel, { color }]}>{label}</Text> : null}
+    </TouchableOpacity>
   );
 }
 
+const SIZE = 36;
+
 const styles = StyleSheet.create({
-  btn: {
-    flexDirection: 'row',
+  // Glass variant container (round, blurred, subtle border)
+  glassWrap: {
+    width: SIZE,
+    height: SIZE,
+    borderRadius: SIZE / 2,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  glassBtn: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 999,
+    justifyContent: 'center',
   },
-  pressed: { opacity: 0.6 },
-  text: {
-    fontSize: 16,
-    color: '#111827',
-    marginLeft: 2,
-    // If you loaded Inter/Montserrat, you can swap this:
-    // fontFamily: 'Inter-SemiBold',
-  },
+
+  // Plain variant
+  plainWrap: { flexDirection: 'row', alignItems: 'center' },
+  plainLabel: { marginLeft: 2, fontSize: 15, fontFamily: 'Montserrat-Medium' },
 });

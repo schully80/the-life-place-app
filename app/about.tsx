@@ -50,8 +50,9 @@ const styles = StyleSheet.create({
   hero: {
     height: H,
     width: '100%',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    paddingTop:192,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

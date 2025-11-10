@@ -7,6 +7,13 @@ import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet } from 'react-native';
 import { useBrandFonts } from '../../hooks/useBrandFonts';
 import PrivacyBanner from '../../components/PrivacyBanner';
+import BackButton from '../../components/BackButton';
+import { useRouter } from 'expo-router';
+
+function BackToCommunityGlass() {
+  const router = useRouter();
+  return <BackButton glass onPress={() => router.replace('/community')} />;
+}
 
 export default function TabsLayout() {
   const fontsLoaded = useBrandFonts();
@@ -32,7 +39,7 @@ export default function TabsLayout() {
           tabBarLabelStyle: {
             fontSize: 12,
             marginBottom: 4,
-            fontFamily: 'Montserrat-Medium', // uses your loaded fonts
+            fontFamily: 'Montserrat-Medium',
           },
           tabBarBackground: () => (
             <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
@@ -57,17 +64,16 @@ export default function TabsLayout() {
           },
         }}
       >
-    <Tabs.Screen
-  name="index"
-  options={{
-    headerShown: false,                // hide header on Home only
-    title: 'Home',
-    tabBarIcon: ({ color, size }) => (
-      <Ionicons name="home-outline" color={color} size={size} />
-    ),
-  }}
-/>
-
+        <Tabs.Screen
+          name="index"
+          options={{
+            headerShown: false, // hide header on Home only
+            title: 'Home',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="home-outline" color={color} size={size} />
+            ),
+          }}
+        />
 
         <Tabs.Screen
           name="live"
@@ -99,15 +105,17 @@ export default function TabsLayout() {
           }}
         />
 
-        <Tabs.Screen
-          name="give"
-          options={{
-            title: 'Give',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="hand-heart-outline" size={size} color={color} />
-            ),
-          }}
-        />
+<Tabs.Screen
+  name="generosity"
+  options={{
+    title: 'Generosity',
+    headerLeft: () => <BackToCommunityGlass />, // round glass & always to /community
+    tabBarIcon: ({ color, size }) => (
+      <MaterialCommunityIcons name="hand-heart-outline" size={size} color={color} />
+    ),
+  }}
+/>
+
       </Tabs>
 
       {/* ✅ One-time POPIA banner across tabs */}

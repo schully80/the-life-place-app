@@ -1,4 +1,4 @@
-// app/give.tsx
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -13,7 +13,7 @@ const COLORS = {
   surfaceAlt: '#F9FAFB',
 };
 
-export default function Give() {
+export default function Generosity() {
   const params = useLocalSearchParams<{ event?: string }>();
   const eventName = params?.event || 'Support the Mission';
 
@@ -25,8 +25,15 @@ export default function Give() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 24 }}>
-      {/* Hero */}
+<ScrollView
+  contentContainerStyle={{
+    paddingTop: 6,          // ⬅️ was larger (e.g., 18–24). Smaller = closer to header
+    paddingBottom: 40,
+    paddingHorizontal: 22,
+  }}
+  keyboardShouldPersistTaps="handled"
+>
+        {/* Hero */}
       <View style={styles.hero}>
         <Text style={styles.heroP}>
           Generosity is our expression of who Jesus is and what He does.
@@ -170,7 +177,7 @@ const styles = StyleSheet.create({
   },
   heroP: {
     fontFamily: 'Montserrat-Medium',
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 22,

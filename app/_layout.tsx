@@ -1,32 +1,50 @@
 // app/_layout.tsx
-import { Stack } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { Stack, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import BackButton from '../components/BackButton'; // path is correct if components/ is at project root
+import BackButton from '../components/BackButton';
+import { useBrandFonts } from '../hooks/useBrandFonts';
+
+// Keep the splash visible immediately
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const SPLASH_MIN_DURATION_MS = 7000; // ← tweak this (e.g., 3000 = 3s)
 
 export default function RootLayout() {
+  const fontsLoaded = useBrandFonts();
+  const startRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    if (!fontsLoaded) return;
+
+    const elapsed = Date.now() - startRef.current;
+    const remaining = Math.max(SPLASH_MIN_DURATION_MS - elapsed, 0);
+
+    const t = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, remaining);
+
+    return () => clearTimeout(t);
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   return (
     <>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
-          headerShown: true, // default: show header
+          headerShown: true,
           headerStyle: { backgroundColor: '#FFFFFF' },
-          headerTitleStyle: {
-            color: '#111827',
-            fontSize: 17,
-            fontFamily: 'Montserrat-SemiBold', // ✅ brand font
-          },
-          headerTintColor: '#111827',          // ✅ icon/back arrow colour
-          headerBackTitleVisible: false,       // ✅ cleaner back
-          headerShadowVisible: false,          // flat, modern
-          headerLeft: () => <BackButton />,    // custom back appears when we can go back
+          headerTitleStyle: { color: '#111827', fontSize: 17, fontFamily: 'Montserrat-SemiBold' },
+          headerTintColor: '#111827',
+          headerBackTitleVisible: false,
+          headerShadowVisible: false,
+          headerLeft: () => <BackButton />,
         }}
       >
-        {/* Tabs group should not show a header */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-        {/* Other stack routes (titles can be overridden inside each file if you want) */}
-        <Stack.Screen name="about" options={{ title: 'About' }} />
+        <Stack.Screen name="about" options={{ title: 'About Us' }} />
         <Stack.Screen name="devotionals" options={{ title: 'Devotionals' }} />
         <Stack.Screen name="events" options={{ title: 'Events' }} />
         <Stack.Screen name="live" options={{ title: 'Live' }} />
@@ -34,6 +52,8 @@ export default function RootLayout() {
         <Stack.Screen name="blog" options={{ title: 'Our Blog' }} />
         <Stack.Screen name="messages" options={{ title: 'Messages' }} />
         <Stack.Screen name="our-welcome" options={{ title: 'Our Welcome' }} />
+        <Stack.Screen name="ministries/index" options={{ title: 'Ministries' }} />
+        <Stack.Screen name="ministries/[slug]" options={{ title: 'Ministry' }} />
       </Stack>
     </>
   );
