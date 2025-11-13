@@ -13,30 +13,39 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const IMG = {
   welcome: require('../../assets/community-welcome.jpg'),
   about: require('../../assets/sandton-skyline.jpg'),
   ministries: require('../../assets/community-ministries2.jpg'),
   give: require('../../assets/community-give-2.jpg'),
-  messages: require('../../assets/community-messages.jpg'),
+  messages: require('../../assets/community-preach.jpg'),
   follow: require('../../assets/community-follow.jpg'),
 };
 
 type Item = {
   label: string;
   url: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
+  pack?: 'ion' | 'mci';
 };
 
 const LINKS: Item[] = [
-  { label: 'Facebook',        url: 'https://facebook.com/thelifeplacesa',                       icon: 'logo-facebook' },
-  { label: 'Instagram',       url: 'https://instagram.com/thelifeplacesa',                      icon: 'logo-instagram' },
-  { label: 'YouTube',         url: 'https://youtube.com/@thelifeplacesa',                       icon: 'logo-youtube' },
-  { label: 'Spotify',         url: 'https://open.spotify.com/show/31hbtgq5cvmqr4tyzs2faygvrzaa?si=61b073370e034f21', icon: 'logo-spotify' },
-  { label: 'Apple Podcasts',  url: 'https://podcasts.apple.com/us/podcast/the-life-place/id1816955719', icon: 'logo-apple' },
+  { label: 'Facebook',       url: 'https://facebook.com/thelifeplacesa', icon: 'logo-facebook', pack: 'ion' },
+  { label: 'Instagram',      url: 'https://instagram.com/thelifeplacesa', icon: 'logo-instagram', pack: 'ion' },
+  { label: 'YouTube',        url: 'https://youtube.com/@thelifeplacesa', icon: 'logo-youtube',  pack: 'ion' },
+  // ✅ Use MaterialCommunityIcons for the true Spotify glyph
+  { label: 'Spotify',        url: 'https://open.spotify.com/show/31hbtgq5cvmqr4tyzs2faygvrzaa?si=61b073370e034f21', icon: 'spotify', pack: 'mci' },
+  { label: 'Apple Podcasts', url: 'https://podcasts.apple.com/us/podcast/the-life-place/id1816955719', icon: 'logo-apple', pack: 'ion' },
 ];
+
+function RenderIcon({ item, color = '#FFFFFF' }: { item: Item; color?: string }) {
+  if (item.pack === 'mci') {
+    return <MaterialCommunityIcons name={item.icon as any} size={22} color={color} />;
+  }
+  return <Ionicons name={item.icon as any} size={22} color={color} />;
+}
 
 export default function Community() {
   const router = useRouter();
@@ -72,7 +81,7 @@ export default function Community() {
         </View>
       </ScrollView>
 
-      {/* Custom “popup” with round icon buttons */}
+      {/* Modal with round icon buttons (icons only, no labels) */}
       <Modal
         visible={sheetOpen}
         animationType="slide"
@@ -85,23 +94,19 @@ export default function Community() {
 
         <View style={styles.sheet}>
           <View style={styles.grabber} />
-          <Text style={styles.sheetTitle}>Follow us online</Text>
-          <Text style={styles.sheetSub}>Watch, listen, and share during the week.</Text>
 
           <View style={styles.iconGrid}>
             {LINKS.map((item) => (
-              <View key={item.label} style={styles.iconBlock}>
-                <TouchableOpacity
-                  onPress={() => openUrl(item.url, item.label)}
-                  activeOpacity={0.9}
-                  style={styles.circle}
-                  accessibilityRole="button"
-                  accessibilityLabel={item.label}
-                >
-                  <Ionicons name={item.icon} size={22} color="#FFFFFF" />
-                </TouchableOpacity>
-                <Text style={styles.iconLabel} numberOfLines={1}>{item.label}</Text>
-              </View>
+              <TouchableOpacity
+                key={item.label}
+                onPress={() => openUrl(item.url, item.label)}
+                activeOpacity={0.9}
+                style={styles.circle}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+              >
+                <RenderIcon item={item} />
+              </TouchableOpacity>
             ))}
           </View>
 
@@ -170,8 +175,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     marginBottom: 8,
   },
-  sheetTitle: { textAlign: 'center', fontFamily: 'Montserrat-SemiBold', fontSize: 18, color: '#111827' },
-  sheetSub: { textAlign: 'center', marginTop: 4, fontFamily: 'Montserrat-Regular', fontSize: 13, color: '#6B7280' },
 
   iconGrid: {
     marginTop: 16,
@@ -180,7 +183,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 16,
   },
-  iconBlock: { alignItems: 'center', width: CIRCLE + 12 },
   circle: {
     width: CIRCLE,
     height: CIRCLE,
@@ -191,13 +193,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  iconLabel: {
-    marginTop: 6,
-    textAlign: 'center',
-    fontSize: 10,
-    color: '#6B7280',
-    fontFamily: 'Montserrat-Medium',
-  },
+
   closeBtn: {
     marginTop: 14,
     alignSelf: 'center',

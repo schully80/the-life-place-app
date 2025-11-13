@@ -1,5 +1,5 @@
 // app/_layout.tsx
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import BackButton from '../components/BackButton';
@@ -9,7 +9,7 @@ import { Asset } from 'expo-asset';
 // Keep the splash visible immediately
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const SPLASH_MIN_DURATION_MS = 3000; // ← tweak this (e.g., 3000 = 3s)
+const SPLASH_MIN_DURATION_MS = 2000; // ← tweak this (e.g., 3000 = 3s)
 
 export default function RootLayout() {
   const fontsLoaded = useBrandFonts();
@@ -23,7 +23,7 @@ export default function RootLayout() {
     (async () => {
       try {
         // Preload the SAME image configured in app.json → expo.splash.image
-        await Asset.fromModule(require('../assets/splash.png')).downloadAsync();
+        await Asset.fromModule(require('../assets/splash-new.png')).downloadAsync();
       } catch {
         // ignore; the native splash will still show
       } finally {
@@ -72,7 +72,7 @@ export default function RootLayout() {
         <Stack.Screen name="devotionals" options={{ title: 'Devotionals' }} />
         <Stack.Screen name="events" options={{ title: 'Events' }} />
         <Stack.Screen name="live" options={{ title: 'Live' }} />
-        <Stack.Screen name="meet-schulter-jenny" options={{ title: 'Schulter & Jenny' }} />
+        <Stack.Screen name="meet-schulter-jenny" options={{ title: 'Schulter & Genevieve' }} />
         <Stack.Screen name="blog" options={{ title: 'Our Blog' }} />
         <Stack.Screen name="messages" options={{ title: 'Messages' }} />
         <Stack.Screen name="our-welcome" options={{ title: 'Our Welcome' }} />

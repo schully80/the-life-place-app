@@ -209,7 +209,7 @@ export default function Home() {
             <Link href="/meet-schulter-jenny" asChild>
               <TouchableOpacity style={styles.cardSingle}>
                 <Ionicons name="people-outline" size={28} color="#B3282D" />
-                <Text style={styles.cardText}>SCHULTER AND JENNY</Text>
+                <Text style={styles.cardText}>SCHULTER AND GENEVIEVE</Text>
               </TouchableOpacity>
             </Link>
 
@@ -323,10 +323,10 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 20,
+    fontSize: 18,
     color: '#111827',
     marginTop: 8,
-    letterSpacing: 3.0,
+    letterSpacing: 2.0,
 
   },
 

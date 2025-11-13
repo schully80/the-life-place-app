@@ -1,4 +1,4 @@
-package com.thelifeplace
+package org.thelifeplace.app
 
 import android.app.Application
 import android.content.res.Configuration

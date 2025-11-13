@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash-new.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -17,7 +17,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.thelifeplace.app",
-      "buildNumber": "2"
+      "buildNumber": "2",
+      "splash": {
+        "image": "./assets/splash-ios.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#B3282D"
+      }
     },
     "android": {
       "versionCode": 2,
@@ -25,7 +30,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "org.thelifeplace.app"
+      "package": "org.thelifeplace.app",
+      "splash": {
+        "image": "./assets/splash-android.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "web": {
       "bundler": "metro",

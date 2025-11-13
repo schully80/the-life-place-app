@@ -1,4 +1,4 @@
-package com.thelifeplace
+package org.thelifeplace.app
 
 import android.os.Build
 import android.os.Bundle

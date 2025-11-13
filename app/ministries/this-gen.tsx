@@ -22,7 +22,7 @@ export default function ThisGen() {
       >
         <View style={styles.overlay} />
         <View style={styles.heroCenter}>
-          <Text style={styles.h1}>ThisGen</Text>
+          <Text style={styles.h1}>thisgen</Text>
         </View>
       </ImageBackground>
 
@@ -30,7 +30,7 @@ export default function ThisGen() {
       <ScrollView contentContainerStyle={styles.body}>
         <View style={styles.card}>
           <Text style={styles.p}>
-            <Text style={styles.redStrong}>ThisGen</Text> is our youth expression at The Life Place — a space for our
+            <Text style={styles.redStrong}>thisgen</Text> is our youth expression at The Life Place — a space for our
             generation to <Text style={styles.redStrong}>Come. See. Jesus</Text>, grow in faith, build lifelong
             friendships, and discover their purpose — all for the glory of Jesus and the good of the world.
           </Text>
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   },
   h1: {
     color: '#FFF',
-    fontFamily: 'Montserrat-Black', // bold/italic vibe; fallback to SemiBold if you don’t have this weight
+    fontFamily: 'Montserrat-Bold', // bold/italic vibe; fallback to SemiBold if you don’t have this weight
     fontSize: 40,                   // ~ 5xl on phones
     fontStyle: 'italic',
     textAlign: 'center',

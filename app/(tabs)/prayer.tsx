@@ -15,6 +15,7 @@ import {
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import Constants from 'expo-constants';
 
 const COLORS = {
   brand: '#B3282D',
@@ -23,14 +24,16 @@ const COLORS = {
   border: 'rgba(255,255,255,0.22)',
   surface: 'rgba(255,255,255,0.48)',
   warn: '#DC2626',
+  ok: 'rgba(17,24,39,0.7)',
 };
 
 const WORD_LIMIT = 75;
 
 export default function Prayer() {
   const [name, setName] = useState('');
+  const [email, setEmail] = useState(''); // ✉️ new
   const [request, setRequest] = useState('');
-  const [consent, setConsent] = useState(false); // ✅ NEW
+  const [consent, setConsent] = useState(false); // ✅ POPIA consent
 
   const wordsUsed = useMemo(
     () => request.trim().split(/\s+/).filter(Boolean).length,
@@ -41,15 +44,60 @@ export default function Prayer() {
   const overBy = Math.max(wordsUsed - WORD_LIMIT, 0);
   const overLimit = wordsUsed > WORD_LIMIT;
 
-  // ✅ UPDATED: require consent to enable submit
-  const canSubmit = name.trim().length > 1 && wordsUsed > 0 && !overLimit && consent;
+  const emailValid = useMemo(() => {
+    if (!email) return false;
+    // lightweight email check
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  }, [email]);
 
-  const onSubmit = () => {
+  const canSubmit =
+    name.trim().length > 1 &&
+    emailValid &&
+    wordsUsed > 0 &&
+    !overLimit &&
+    consent;
+
+  const onSubmit = async () => {
     if (!canSubmit) return;
-    Alert.alert('Request sent', 'Thank you—we will pray with you.');
-    setName('');
-    setRequest('');
-    setConsent(false);
+
+    const payload = {
+      name: name.trim(),
+      email: email.trim(),
+      request: request.trim(),
+      wordsUsed,
+      createdAt: new Date().toISOString(),
+      source: 'tlp-app/prayer',
+    };
+
+    const webhook =
+      (Constants.expoConfig?.extra as any)?.PRAYER_EMAIL_WEBHOOK ||
+      (Constants.manifest2?.extra as any)?.PRAYER_EMAIL_WEBHOOK;
+
+    try {
+      if (webhook) {
+        const res = await fetch(webhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          throw new Error(`Webhook failed (${res.status})`);
+        }
+      }
+      Alert.alert(
+        'Request sent',
+        'Thank you—we’ll pray with you. A confirmation has been sent to your email.'
+      );
+      setName('');
+      setEmail('');
+      setRequest('');
+      setConsent(false);
+    } catch (e: any) {
+      Alert.alert(
+        'Request submitted',
+        'We received your request, but the email confirmation could not be sent right now.'
+      );
+    }
   };
 
   return (
@@ -76,7 +124,7 @@ export default function Prayer() {
           >
             {/* Frosted card (blur + translucency) */}
             <View style={styles.glassCard}>
-              <BlurView tint="light" intensity={6} style={StyleSheet.absoluteFill} />
+              <BlurView tint="light" intensity={6} style={StyleSheet.absoluteFillObject} />
 
               <View style={styles.cardInner}>
                 {/* Intro */}
@@ -98,16 +146,41 @@ export default function Prayer() {
                   autoCapitalize="words"
                 />
 
-                {/* Prayer request */}
-                <View style={{ marginTop: 14 }}>
+                {/* Email (required for confirmation) */}
+                <View style={{ marginTop: 12 }}>
                   <View style={styles.labelRow}>
+                    <Text style={styles.label}>Email</Text>
+                    {!emailValid && email.length > 0 ? (
+                      <Text style={styles.helperWarn}>Enter a valid email</Text>
+                    ) : null}
+                  </View>
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="you@example.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholderTextColor="rgba(17,24,39,0.55)"
+                    style={styles.input}
+                    returnKeyType="next"
+                  />
+                  <Text style={styles.helperOk}>
+                    We’ll send a confirmation to this address.
+                  </Text>
+                </View>
+
+                {/* Prayer request */}
+                <View style={{ marginTop: 16 }}>
+                  <View style={styles.labelRow}>
+                    <Text style={styles.label}>Prayer request</Text>
                     <Text
                       style={[
                         styles.counter,
                         {
                           marginLeft: 'auto',
                           textAlign: 'right',
-                          color: overLimit ? COLORS.warn : 'rgba(17,24,39,0.7)',
+                          color: overLimit ? COLORS.warn : COLORS.ok,
                         },
                       ]}
                     >
@@ -140,28 +213,20 @@ export default function Prayer() {
                   )}
                 </View>
 
-                {/* ✅ Consent checkbox row (required) */}
+                {/* Consent */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
                   <TouchableOpacity
                     onPress={() => setConsent(!consent)}
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 4,
-                      borderWidth: 1,
-                      borderColor: '#D1D5DB',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: 8,
-                      backgroundColor: consent ? COLORS.brand : '#FFF',
-                    }}
+                    style={[
+                      styles.checkbox,
+                      { backgroundColor: consent ? COLORS.brand : '#FFF' },
+                    ]}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: consent }}
                   >
                     {consent ? <Ionicons name="checkmark" size={16} color="#FFF" /> : null}
                   </TouchableOpacity>
-
-                  <Text style={{ flex: 1, color: '#374151', fontFamily: 'Montserrat-Regular', fontSize: 12 }}>
+                  <Text style={styles.consentText}>
                     I consent to The Life Place processing my request for prayer and contacting me if needed.
                   </Text>
                 </View>
@@ -214,11 +279,6 @@ const styles = StyleSheet.create({
   },
 
   intro: { marginBottom: 10 },
-  h1: {
-    fontFamily: 'Montserrat-SemiBold',
-    fontSize: 22,
-    color: '#111827',
-  },
   sub: {
     marginTop: 6,
     fontFamily: 'Montserrat-Regular',
@@ -281,11 +341,28 @@ const styles = StyleSheet.create({
   },
   helperOk: {
     marginTop: 6,
-    color: 'rgba(17,24,39,0.7)',
+    color: COLORS.ok,
     fontFamily: 'Montserrat-Medium',
     fontSize: 12,
     alignSelf: 'flex-end',
     textAlign: 'right',
+  },
+
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  consentText: {
+    flex: 1,
+    color: '#374151',
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 12,
   },
 
   cta: {
@@ -313,6 +390,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: 'Montserrat-Regular',
     fontSize: 12,
-    color: 'rgba(17,24,39,0.7)',
+    color: COLORS.ok,
   },
 });
