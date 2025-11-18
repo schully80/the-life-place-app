@@ -1,0 +1,35 @@
+{
+  "cli": {
+    "version": ">= 3.15.0"
+  },
+  "build": {
+    "simulator": {
+      "ios": {
+        "simulator": true
+      },
+      "channel": "simulator"
+    },
+    "emulator": {
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "emulator"
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "dev"
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview"
+    },
+    "production": {
+      "channel": "production",
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

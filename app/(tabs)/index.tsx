@@ -35,6 +35,7 @@ export default function Home() {
 
   const { YOUTUBE_API_KEY, YOUTUBE_CHANNEL_ID } =
     (Constants.expoConfig?.extra as any) ?? {};
+  const hasYouTube = Boolean(YOUTUBE_API_KEY && YOUTUBE_CHANNEL_ID);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,14 +43,21 @@ export default function Home() {
 
   useEffect(() => {
     let mounted = true;
+
+    // If no API creds, hide the section by skipping fetch and clearing state
+    if (!hasYouTube) {
+      setLoading(false);
+      setError(null);
+      setVideos([]);
+      return () => {
+        mounted = false;
+      };
+    }
+
     (async () => {
       try {
         setLoading(true);
         setError(null);
-
-        if (!YOUTUBE_API_KEY || !YOUTUBE_CHANNEL_ID) {
-          throw new Error('Missing YOUTUBE_API_KEY or YOUTUBE_CHANNEL_ID in app.json → extra');
-        }
 
         const url =
           `https://www.googleapis.com/youtube/v3/search` +
@@ -67,10 +75,11 @@ export default function Home() {
         if (mounted) setLoading(false);
       }
     })();
+
     return () => {
       mounted = false;
     };
-  }, [YOUTUBE_API_KEY, YOUTUBE_CHANNEL_ID]);
+  }, [hasYouTube, YOUTUBE_API_KEY, YOUTUBE_CHANNEL_ID]);
 
   // 2-column card sizing for messages
   const CARD_GAP = 12;
@@ -103,69 +112,36 @@ export default function Home() {
 
         {/* Page body */}
         <View style={styles.body}>
-          {/* 📺 Latest Messages */}
-          <Text style={styles.sectionTitle}>FEATURED</Text>
+          {/* 📺 Featured — HIDDEN entirely when no API key/channel */}
+          {hasYouTube && (
+            <>
+              <Text style={styles.sectionTitle}>FEATURED</Text>
 
-          {loading ? (
-            <View style={styles.stateWrap}>
-              <ActivityIndicator size="large" color="#B3282D" />
-              <Text style={styles.stateText}>Loading sermons…</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.stateWrap}>
-              <Ionicons name="warning-outline" size={20} color="#B3282D" />
-              <Text style={styles.stateText}>{error}</Text>
-            </View>
-          ) : videos.length === 0 ? (
-            <View style={styles.stateWrap}>
-              <Ionicons name="albums-outline" size={20} color="#6B7280" />
-              <Text style={styles.stateText}>No messages yet.</Text>
-            </View>
-          ) : (
-            <View style={{ gap: CARD_GAP }}>
-              {/* first row */}
-              <View style={{ flexDirection: 'row', gap: CARD_GAP, marginBottom: CARD_GAP }}>
-                {videos.slice(0, 2).map((item, i) => {
-                  const thumb =
-                    item.snippet.thumbnails.high?.url ||
-                    item.snippet.thumbnails.medium?.url ||
-                    '';
-                  return (
-                    <TouchableOpacity
-                      key={`v0-${i}`}
-                      onPress={() => openVideo(item)}
-                      activeOpacity={0.85}
-                      style={[styles.card, { width: cardWidth }]}
-                    >
-                      <Image source={{ uri: thumb }} style={styles.cardImage} resizeMode="cover" />
-                      <Text numberOfLines={2} style={styles.cardTitle}>
-                        {item.snippet.title}
-                      </Text>
-                      <View style={styles.cardMeta}>
-                        <Ionicons name="time-outline" size={14} color="#6B7280" />
-                        <Text style={styles.cardMetaText}>
-                          {new Date(item.snippet.publishedAt).toLocaleDateString()}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* remaining rows */}
-              {Array.from({ length: Math.ceil((videos.length - 2) / 2) }).map((_, rowIdx) => {
-                const start = 2 + rowIdx * 2;
-                const row = videos.slice(start, start + 2);
-                return (
-                  <View key={`row-${rowIdx}`} style={{ flexDirection: 'row', gap: CARD_GAP }}>
-                    {row.map((item, i) => {
+              {loading ? (
+                <View style={styles.stateWrap}>
+                  <ActivityIndicator size="large" color="#B3282D" />
+                  <Text style={styles.stateText}>Loading sermons…</Text>
+                </View>
+              ) : error ? (
+                // Don’t show error text during capture; render nothing
+                <View />
+              ) : videos.length === 0 ? (
+                <View style={styles.stateWrap}>
+                  <Ionicons name="albums-outline" size={20} color="#6B7280" />
+                  <Text style={styles.stateText}>No messages yet.</Text>
+                </View>
+              ) : (
+                <View style={{ gap: CARD_GAP }}>
+                  {/* first row */}
+                  <View style={{ flexDirection: 'row', gap: CARD_GAP, marginBottom: CARD_GAP }}>
+                    {videos.slice(0, 2).map((item, i) => {
                       const thumb =
                         item.snippet.thumbnails.high?.url ||
                         item.snippet.thumbnails.medium?.url ||
                         '';
                       return (
                         <TouchableOpacity
-                          key={`v${start}-${i}`}
+                          key={`v0-${i}`}
                           onPress={() => openVideo(item)}
                           activeOpacity={0.85}
                           style={[styles.card, { width: cardWidth }]}
@@ -183,15 +159,50 @@ export default function Home() {
                         </TouchableOpacity>
                       );
                     })}
-                    {row.length === 1 && <View style={{ width: cardWidth }} />}
                   </View>
-                );
-              })}
-            </View>
+
+                  {/* remaining rows */}
+                  {Array.from({ length: Math.ceil((videos.length - 2) / 2) }).map((_, rowIdx) => {
+                    const start = 2 + rowIdx * 2;
+                    const row = videos.slice(start, start + 2);
+                    return (
+                      <View key={`row-${rowIdx}`} style={{ flexDirection: 'row', gap: CARD_GAP }}>
+                        {row.map((item, i) => {
+                          const thumb =
+                            item.snippet.thumbnails.high?.url ||
+                            item.snippet.thumbnails.medium?.url ||
+                            '';
+                          return (
+                            <TouchableOpacity
+                              key={`v${start}-${i}`}
+                              onPress={() => openVideo(item)}
+                              activeOpacity={0.85}
+                              style={[styles.card, { width: cardWidth }]}
+                            >
+                              <Image source={{ uri: thumb }} style={styles.cardImage} resizeMode="cover" />
+                              <Text numberOfLines={2} style={styles.cardTitle}>
+                                {item.snippet.title}
+                              </Text>
+                              <View style={styles.cardMeta}>
+                                <Ionicons name="time-outline" size={14} color="#6B7280" />
+                                <Text style={styles.cardMetaText}>
+                                  {new Date(item.snippet.publishedAt).toLocaleDateString()}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                        {row.length === 1 && <View style={{ width: cardWidth }} />}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </>
           )}
 
           {/* 🌿 Feature Cards (bigger but spaced, not touching) */}
-          <View style={[styles.cards, { marginTop: 24 }]}>
+          <View style={[styles.cards, { marginTop: hasYouTube ? 24 : 6 }]}>
             <Link href="/events" asChild>
               <TouchableOpacity style={styles.cardSingle}>
                 <Ionicons name="calendar-outline" size={28} color="#B3282D" />
@@ -231,7 +242,6 @@ const PAGE_PADDING = 24;
 const styles = StyleSheet.create({
   bg: { flex: 1 },
 
-  // Full-bleed white bar (edge-to-edge)
   headerWrap: {
     width: '100%',
     backgroundColor: '#FFFFFF',
@@ -244,10 +254,8 @@ const styles = StyleSheet.create({
 
   logo: { width: 72, height: 72 },
 
-  // Body
   body: { paddingHorizontal: PAGE_PADDING, paddingTop: 20 },
 
-  // Section title (right aligned)
   sectionTitle: {
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 18,
@@ -257,11 +265,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
 
-  // Message cards (grid)
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: TILE_RADIUS,
-    height: TILE_HEIGHT,               // bigger tiles, still spaced
+    height: TILE_HEIGHT,
     paddingHorizontal: 16,
     paddingVertical: 14,
     justifyContent: 'center',
@@ -271,40 +278,39 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#F1F5F9',            // fixed subtle border colour
-    marginBottom: 14,                  // tiles don’t touch
+    borderColor: '#F1F5F9',
+    marginBottom: 14,
     width: '100%',
   },
   cardImage: {
     width: '100%',
-    height: 120,                       // a bit taller to match larger tile
+    height: 120,
     backgroundColor: '#F3F4F6',
     borderRadius: 10,
   },
   cardTitle: {
-  fontFamily: 'Inter-SemiBold',
-  fontSize: 14,
-  color: '#111827',
-  paddingTop: 10,
-  minHeight: 44,
-  textAlign: 'center',        // ⬅️ center the title
-},
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#111827',
+    paddingTop: 10,
+    minHeight: 44,
+    textAlign: 'center',
+  },
   cardMeta: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 6,
-  paddingBottom: 10,
-  justifyContent: 'center',    // ⬅️ center the icon + date row
-},
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 10,
+    justifyContent: 'center',
+  },
   cardMetaText: {
     fontSize: 12,
     color: '#6B7280',
   },
 
-  // Feature cards (single-column)
   cards: {
     flexDirection: 'column',
-    gap: 0, // using marginBottom on each card
+    gap: 0,
   },
   cardSingle: {
     backgroundColor: '#FFFFFF',
@@ -318,8 +324,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
-    minHeight: 160,         // bigger like you wanted
-    marginBottom: 18,       // spacing so they don’t touch
+    minHeight: 160,
+    marginBottom: 18,
   },
   cardText: {
     fontFamily: 'Montserrat-Bold',
@@ -327,10 +333,8 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginTop: 8,
     letterSpacing: 2.0,
-
   },
 
-  // States
   stateWrap: { alignItems: 'center', gap: 8, paddingVertical: 16 },
   stateText: { color: '#6B7280' },
 });
