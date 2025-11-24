@@ -227,7 +227,7 @@ export default function Prayer() {
                     {consent ? <Ionicons name="checkmark" size={16} color="#FFF" /> : null}
                   </TouchableOpacity>
                   <Text style={styles.consentText}>
-                    I consent to The Life Place processing my request for prayer and contacting me if needed.
+                    I consent to The Life Place using this information solely to respond to my request.
                   </Text>
                 </View>
 
