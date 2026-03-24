@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useBootstrap } from '~/hooks/useBootstrap';
 import AppIcon, { AppIconName } from '~/components/AppIcon';
 import PageSlogan from '~/components/PageSlogan';
@@ -71,14 +71,6 @@ export default function Community() {
               onPress={() => router.push('/messages')}
             />
         ) : null}
-        </View>
-
-        <View style={styles.privacyRow}>
-          <Link href="/privacy" asChild>
-            <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.privacy}>Privacy</Text>
-            </TouchableOpacity>
-          </Link>
         </View>
 
         <PageSlogan />
@@ -193,12 +185,5 @@ const styles = StyleSheet.create({
     color: BRAND_RED,
     textTransform: 'uppercase',
     letterSpacing: 1.4,
-  },
-  privacyRow: { marginTop: 8, alignItems: 'flex-end', paddingHorizontal: 12 },
-  privacy: {
-    color: MUTED,
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 12,
-    textDecorationLine: 'underline',
   },
 });

@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
   type StyleProp,
@@ -14,6 +15,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppIcon, { AppIconName } from '~/components/AppIcon';
 import PageSlogan from '~/components/PageSlogan';
@@ -30,6 +32,8 @@ const PAGE_PADDING = 20;
 const SOCIAL_ICON_SIZE = 54;
 const SECTION_HEADER_TITLE_SIZE = 30;
 const LOGO_IMAGE = require('../../assets/logo.png');
+const CANONICAL_PRIVACY_URL = 'https://thelifeplace.org/privacy-policy/';
+const CANONICAL_TERMS_URL = 'https://thelifeplace.org/terms/';
 
 type SocialItem = {
   label: string;
@@ -67,6 +71,13 @@ export default function Home() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string | null>(lastActiveHomeCardId);
   const activeStyle = HOME_STYLES.find((style) => style.id === 'glass') ?? HOME_STYLES[0];
+  const appVersion = Constants.expoConfig?.version || '0.1.0';
+  const buildNumber =
+    Constants.expoConfig?.ios?.buildNumber ||
+    String(Constants.expoConfig?.android?.versionCode || '').trim();
+  const versionLabel = buildNumber
+    ? `Version ${appVersion} (${buildNumber})`
+    : `Version ${appVersion}`;
 
   const missionSupport =
     'Every time we meet we see how true, good, beautiful, and kind Jesus is.';
@@ -286,6 +297,28 @@ export default function Home() {
           </CardSurface>
 
           <PageSlogan inverse />
+
+          <View style={styles.footerLegal}>
+            <View style={styles.footerRule} />
+            <View style={styles.legalLinksRow}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={() => void openUrl(CANONICAL_PRIVACY_URL, 'Privacy Policy')}
+              >
+                <Text style={styles.legalLink}>Privacy Policy</Text>
+              </TouchableOpacity>
+              <Text style={styles.legalDivider}>•</Text>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={() => void openUrl(CANONICAL_TERMS_URL, 'Terms')}
+              >
+                <Text style={styles.legalLink}>Terms</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.versionText}>{versionLabel}</Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -808,6 +841,44 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-Regular',
     fontSize: 13,
     lineHeight: 18,
+  },
+  footerLegal: {
+    paddingTop: 8,
+    paddingBottom: 6,
+    alignItems: 'center',
+  },
+  footerRule: {
+    width: '100%',
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginBottom: 14,
+  },
+  legalLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  legalLink: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#F3F4F6',
+    textDecorationLine: 'underline',
+  },
+  legalDivider: {
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.55)',
+  },
+  versionText: {
+    marginTop: 10,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 12,
+    lineHeight: 16,
+    color: 'rgba(255,255,255,0.55)',
+    textAlign: 'center',
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,

@@ -58,7 +58,7 @@ export default function RootLayout() {
         <Stack.Screen name="messages" options={{ title: 'MESSAGES' }} />
         <Stack.Screen name="our-welcome" options={{ title: 'OUR WELCOME' }} />
         <Stack.Screen name="visit" options={{ title: 'VISIT US' }} />
-        <Stack.Screen name="privacy" options={{ title: 'PRIVACY POLICY' }} />
+        <Stack.Screen name="privacy" options={{ title: 'LEGAL' }} />
         <Stack.Screen name="ministries/index" options={{ title: 'MINISTRIES' }} />
         <Stack.Screen name="ministries/[slug]" options={{ title: 'MINISTRY' }} />
       </Stack>
