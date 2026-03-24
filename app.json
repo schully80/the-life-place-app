@@ -44,7 +44,7 @@
     "extra": {
       "CONTENT_API_BASE_URL": "https://thelifeplace.org",
       "SUPABASE_URL": "https://nqjaqwtqqrbxqzlgtttk.supabase.co",
-      "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xamFxd3RxcXJieHF6bGd0dHRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NDEzMDgsImV4cCI6MjA3NTQxNzMwOH0.6wPjuXIbt_5G3Zya776RQ3O8T82GkomwhFSGwo_F1Cs",
+      "SUPABASE_ANON_KEY": "YOUR_PUBLIC_SUPABASE_ANON_KEY",
       "PRAYER_EMAIL_WEBHOOK": "https://your-domain.example/api/prayer-email",
       "ICS_CALENDAR_URL": "https://calendar.google.com/calendar/ical/YOUR_CAL_ID/public/basic.ics",
       "GIVING_URL": "https://thelifeplace.org/give",
