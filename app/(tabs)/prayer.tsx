@@ -31,13 +31,111 @@ const COLORS = {
 };
 
 const WORD_LIMIT = 75;
+const VERIFICATION_REASONS = new Set([
+  'missing_turnstile',
+  'missing_token',
+  'missing_input_response',
+  'invalid_input_response',
+  'timeout_or_duplicate',
+  'turnstile_failed',
+]);
+
+const SITE_COPY = {
+  successTitle: 'Thank you. Your prayer request has been received.',
+  successDescription: 'Our prayer team will pray with care and discretion.',
+  duplicateTitle: 'A prayer request from this email is already active.',
+  duplicateDescription:
+    'Please wait 7 days before submitting another request, or contact us directly if it is urgent.',
+  missingTurnstileTitle: 'Please complete the verification challenge.',
+  missingTurnstileDescription: 'Then send your prayer request again.',
+  defaultErrorTitle: "We couldn't submit your prayer request.",
+  defaultErrorDescription: 'Please review your details and try again.',
+};
+
+type PrayerApiResponse = {
+  detail?: string;
+  email_error?: boolean;
+  error?: string;
+  fieldErrors?: Partial<Record<'name' | 'email' | 'request' | 'consent', string>>;
+  reason?: string;
+  success?: boolean;
+};
+
+function errorForReason(reason?: string | null) {
+  if (!reason) {
+    return {
+      title: SITE_COPY.defaultErrorTitle,
+      description: SITE_COPY.defaultErrorDescription,
+    };
+  }
+
+  const known: Record<string, { title: string; description: string }> = {
+    incomplete: {
+      title: 'Please complete all required fields.',
+      description: 'Review the form and try again.',
+    },
+    invalid_email: {
+      title: 'Your email address looks invalid.',
+      description: 'Update it and submit again.',
+    },
+    missing_turnstile: {
+      title: SITE_COPY.missingTurnstileTitle,
+      description: SITE_COPY.missingTurnstileDescription,
+    },
+    missing_token: {
+      title: SITE_COPY.missingTurnstileTitle,
+      description: SITE_COPY.missingTurnstileDescription,
+    },
+    missing_input_response: {
+      title: SITE_COPY.missingTurnstileTitle,
+      description: SITE_COPY.missingTurnstileDescription,
+    },
+    invalid_input_response: {
+      title: 'Your verification challenge expired.',
+      description: 'Complete it again and resubmit.',
+    },
+    timeout_or_duplicate: {
+      title: 'Your verification challenge expired.',
+      description: 'Complete it again and resubmit.',
+    },
+    turnstile_failed: {
+      title: "We couldn't verify your submission.",
+      description: 'Please complete the challenge again.',
+    },
+    email_not_configured: {
+      title: 'Email delivery is not configured.',
+      description: 'Please try again later.',
+    },
+  };
+
+  return (
+    known[reason] || {
+      title: SITE_COPY.defaultErrorTitle,
+      description: `Error: ${reason}`,
+    }
+  );
+}
+
+function formatFieldErrors(
+  fieldErrors?: Partial<Record<'name' | 'email' | 'request' | 'consent', string>>
+) {
+  if (!fieldErrors) return null;
+
+  const messages = ['name', 'email', 'request', 'consent']
+    .map((key) => fieldErrors[key as keyof typeof fieldErrors]?.trim())
+    .filter(Boolean);
+
+  if (!messages.length) return null;
+  return messages.join('\n');
+}
 
 export default function Prayer() {
   const { data } = useBootstrap();
   const [name, setName] = useState('');
-  const [email, setEmail] = useState(''); // ✉️ new
+  const [email, setEmail] = useState('');
   const [request, setRequest] = useState('');
-  const [consent, setConsent] = useState(false); // ✅ POPIA consent
+  const [consent, setConsent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const supportEmail = data?.contact.email || 'hello@thelifeplace.org';
 
   const wordsUsed = useMemo(
@@ -60,7 +158,8 @@ export default function Prayer() {
     emailValid &&
     wordsUsed > 0 &&
     !overLimit &&
-    consent;
+    consent &&
+    !submitting;
 
   const webhook = config.prayerEmailWebhook;
   const hasConfiguredWebhook =
@@ -69,8 +168,33 @@ export default function Prayer() {
     !/example\.com/i.test(webhook);
   const submitUrl = hasConfiguredWebhook ? webhook! : toAbsoluteSiteUrl('/api/prayer');
 
+  const resetForm = () => {
+    setName('');
+    setEmail('');
+    setRequest('');
+    setConsent(false);
+  };
+
+  const openEmailFallback = () => {
+    const subject = encodeURIComponent(`Prayer Request from ${name.trim()}`);
+    const body = encodeURIComponent(
+      [
+        `Name: ${name.trim()}`,
+        `Email: ${email.trim()}`,
+        '',
+        'Prayer request:',
+        request.trim(),
+      ].join('\n')
+    );
+    void Linking.openURL(`mailto:${supportEmail}?subject=${subject}&body=${body}`);
+  };
+
+  const openPrayerPage = () => {
+    void Linking.openURL(toAbsoluteSiteUrl('/prayer'));
+  };
+
   const onSubmit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || submitting) return;
 
     const payload = {
       name: name.trim(),
@@ -81,45 +205,62 @@ export default function Prayer() {
     };
 
     try {
+      setSubmitting(true);
       const res = await fetch(submitUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json().catch(() => null);
-      if (res.status === 429 && data?.reason === 'limit_reached') {
+      const data = (await res.json().catch(() => null)) as PrayerApiResponse | null;
+      const reason = data?.reason || data?.error || null;
+
+      if (res.status === 429 && reason === 'limit_reached') {
         Alert.alert(
-          'A prayer request from this email is already active',
-          'Please wait 7 days before submitting another request, or contact us directly if it is urgent.'
+          SITE_COPY.duplicateTitle,
+          SITE_COPY.duplicateDescription
         );
         return;
       }
 
       if (!res.ok || data?.success === false) {
-        throw new Error(data?.detail || `Prayer request failed (${res.status})`);
+        if (reason === 'validation_error') {
+          Alert.alert(
+            'Please review your details.',
+            formatFieldErrors(data?.fieldErrors) || SITE_COPY.defaultErrorDescription
+          );
+          return;
+        }
+
+        if (reason && VERIFICATION_REASONS.has(reason)) {
+          Alert.alert(
+            'Verification required',
+            'This prayer request now needs website verification before it can be sent. Open the prayer page in your browser, or email us instead.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open website', onPress: openPrayerPage },
+              { text: 'Email instead', onPress: openEmailFallback },
+            ]
+          );
+          return;
+        }
+
+        const resolved = errorForReason(reason);
+        Alert.alert(resolved.title, data?.detail || resolved.description);
+        return;
       }
 
       if (data?.email_error) {
         Alert.alert(
-          'Request received',
-          'Thank you. Your prayer request has been received, but we could not confirm delivery by email right now.'
+          SITE_COPY.successTitle,
+          `${SITE_COPY.successDescription}\n\nWe could not confirm delivery by email right now.`
         );
-        setName('');
-        setEmail('');
-        setRequest('');
-        setConsent(false);
+        resetForm();
         return;
       }
 
-      Alert.alert(
-        'Request sent',
-        'Thank you—we’ll pray with you. A confirmation has been sent to your email.'
-      );
-      setName('');
-      setEmail('');
-      setRequest('');
-      setConsent(false);
+      Alert.alert(SITE_COPY.successTitle, SITE_COPY.successDescription);
+      resetForm();
     } catch (e: any) {
       Alert.alert(
         'Request not sent',
@@ -128,22 +269,12 @@ export default function Prayer() {
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Email instead',
-            onPress: () => {
-              const subject = encodeURIComponent(`Prayer Request from ${name.trim()}`);
-              const body = encodeURIComponent(
-                [
-                  `Name: ${name.trim()}`,
-                  `Email: ${email.trim()}`,
-                  '',
-                  'Prayer request:',
-                  request.trim(),
-                ].join('\n')
-              );
-              void Linking.openURL(`mailto:${supportEmail}?subject=${subject}&body=${body}`);
-            },
+            onPress: openEmailFallback,
           },
         ]
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -177,7 +308,7 @@ export default function Prayer() {
                 {/* Intro */}
                 <View style={styles.intro}>
                   <Text style={styles.sub}>
-                    Share a prayer request (up to {WORD_LIMIT} words).
+                    Share your request and our prayer team will stand with you in prayer.
                   </Text>
                 </View>
 
@@ -220,7 +351,7 @@ export default function Prayer() {
                 {/* Prayer request */}
                 <View style={{ marginTop: 16 }}>
                   <View style={styles.labelRow}>
-                    <Text style={styles.label}>Prayer request</Text>
+                    <Text style={styles.label}>Prayer request ({WORD_LIMIT} words max)</Text>
                     <Text
                       style={[
                         styles.counter,
@@ -286,7 +417,7 @@ export default function Prayer() {
                   accessibilityRole="button"
                 >
                   <AppIcon name="paper-plane" size={18} color="#fff" />
-                  <Text style={styles.ctaText}>Send</Text>
+                  <Text style={styles.ctaText}>{submitting ? 'Sending...' : 'Send'}</Text>
                 </TouchableOpacity>
 
                 <Text style={styles.footnote}>
