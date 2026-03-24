@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { BlurView } from 'expo-blur';
-import { toAbsoluteSiteUrl } from '~/lib/contentApi';
+import { getCanonicalContactEmail, toAbsoluteSiteUrl } from '~/lib/contentApi';
+import { openMailApp } from '~/lib/externalLinks';
 import AppIcon from '~/components/AppIcon';
 import { useBootstrap } from '~/hooks/useBootstrap';
 import { config } from '~/lib/appConfig';
@@ -136,7 +137,7 @@ export default function Prayer() {
   const [request, setRequest] = useState('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const supportEmail = data?.contact.email || 'hello@thelifeplace.org';
+  const supportEmail = getCanonicalContactEmail(data?.contact.email);
 
   const wordsUsed = useMemo(
     () => request.trim().split(/\s+/).filter(Boolean).length,
@@ -176,17 +177,17 @@ export default function Prayer() {
   };
 
   const openEmailFallback = () => {
-    const subject = encodeURIComponent(`Prayer Request from ${name.trim()}`);
-    const body = encodeURIComponent(
+    const subject = `Prayer Request from ${name.trim()}`;
+    const body =
       [
         `Name: ${name.trim()}`,
         `Email: ${email.trim()}`,
         '',
         'Prayer request:',
         request.trim(),
-      ].join('\n')
-    );
-    void Linking.openURL(`mailto:${supportEmail}?subject=${subject}&body=${body}`);
+      ].join('\n');
+
+    void openMailApp(supportEmail, { subject, body });
   };
 
   const openPrayerPage = () => {
@@ -280,7 +281,7 @@ export default function Prayer() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: 'Prayer' }} />
+      <Stack.Screen options={{ headerShown: true, title: 'PRAYER' }} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -307,77 +308,75 @@ export default function Prayer() {
               <View style={styles.cardInner}>
                 {/* Intro */}
                 <View style={styles.intro}>
+                  <View style={styles.kickerWrap}>
+                    <Text style={styles.kicker}>Prayer Request</Text>
+                  </View>
                   <Text style={styles.sub}>
                     Share your request and our prayer team will stand with you in prayer.
                   </Text>
+                  <Text style={styles.requiredNote}>* Required fields</Text>
                 </View>
 
-                {/* Name */}
-                <Text style={styles.label}>Your name</Text>
-                <TextInput
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="e.g., Thandi"
-                  placeholderTextColor="rgba(17,24,39,0.55)"
-                  style={styles.input}
-                  returnKeyType="next"
-                  autoCapitalize="words"
-                />
+                <View style={styles.formSection}>
+                  {/* Name */}
+                  <Text style={styles.label}>Your name *</Text>
+                  <View style={styles.inputWrap}>
+                    <TextInput
+                      value={name}
+                      onChangeText={setName}
+                      placeholder="e.g., Thandi"
+                      placeholderTextColor="rgba(17,24,39,0.55)"
+                      style={styles.input}
+                      returnKeyType="next"
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </View>
 
                 {/* Email (required for confirmation) */}
-                <View style={{ marginTop: 12 }}>
+                <View style={styles.formSection}>
                   <View style={styles.labelRow}>
-                    <Text style={styles.label}>Email</Text>
+                    <Text style={styles.label}>Email *</Text>
                     {!emailValid && email.length > 0 ? (
                       <Text style={styles.helperWarn}>Enter a valid email</Text>
                     ) : null}
                   </View>
-                  <TextInput
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="you@example.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    placeholderTextColor="rgba(17,24,39,0.55)"
-                    style={styles.input}
-                    returnKeyType="next"
-                  />
+                  <View style={styles.inputWrap}>
+                    <TextInput
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="you@example.com"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholderTextColor="rgba(17,24,39,0.55)"
+                      style={styles.input}
+                      returnKeyType="next"
+                    />
+                  </View>
                   <Text style={styles.helperOk}>
                     We’ll send a confirmation to this address.
                   </Text>
                 </View>
 
                 {/* Prayer request */}
-                <View style={{ marginTop: 16 }}>
+                <View style={styles.formSection}>
                   <View style={styles.labelRow}>
-                    <Text style={styles.label}>Prayer request ({WORD_LIMIT} words max)</Text>
-                    <Text
-                      style={[
-                        styles.counter,
-                        {
-                          marginLeft: 'auto',
-                          textAlign: 'right',
-                          color: overLimit ? COLORS.warn : COLORS.ok,
-                        },
-                      ]}
-                    >
-                      {!overLimit
-                        ? `${wordsUsed} used • ${wordsRemaining} left`
-                        : `${wordsUsed} used • ${overBy} over`}
-                    </Text>
+                    <Text style={styles.label}>Prayer request ({WORD_LIMIT} words max) *</Text>
                   </View>
 
-                  <TextInput
-                    value={request}
-                    onChangeText={setRequest}
-                    placeholder="Write a short request we can pray over…"
-                    placeholderTextColor="rgba(17,24,39,0.55)"
-                    multiline
-                    style={[styles.textarea, overLimit && styles.textareaWarn]}
-                    textAlignVertical="top"
-                    maxLength={800}
-                  />
+                  <View style={[styles.textareaWrap, overLimit && styles.textareaWrapWarn]}>
+                    <TextInput
+                      value={request}
+                      onChangeText={setRequest}
+                      placeholder="Write a short request we can pray over…"
+                      placeholderTextColor="rgba(17,24,39,0.55)"
+                      multiline
+                      style={[styles.textarea, overLimit && styles.textareaWarn]}
+                      textAlignVertical="top"
+                      maxLength={800}
+                    />
+                  </View>
 
                   {overLimit ? (
                     <Text style={styles.helperWarn}>
@@ -392,39 +391,45 @@ export default function Prayer() {
                 </View>
 
                 {/* Consent */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
-                  <TouchableOpacity
-                    onPress={() => setConsent(!consent)}
+                <TouchableOpacity
+                  onPress={() => setConsent(!consent)}
+                  activeOpacity={0.86}
+                  style={styles.consentCard}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: consent }}
+                >
+                  <View
                     style={[
                       styles.checkbox,
                       { backgroundColor: consent ? COLORS.brand : '#FFF' },
                     ]}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: consent }}
                   >
                     {consent ? <AppIcon name="check" size={16} color="#FFF" /> : null}
-                  </TouchableOpacity>
+                  </View>
                   <Text style={styles.consentText}>
                     I consent to The Life Place using this information solely to respond to my request.
                   </Text>
-                </View>
+                </TouchableOpacity>
 
                 {/* Compact CTA */}
-                <TouchableOpacity
-                  onPress={onSubmit}
-                  disabled={!canSubmit}
-                  style={[styles.cta, !canSubmit && styles.ctaDisabled]}
-                  accessibilityRole="button"
-                >
-                  <AppIcon name="paper-plane" size={18} color="#fff" />
-                  <Text style={styles.ctaText}>{submitting ? 'Sending...' : 'Send'}</Text>
-                </TouchableOpacity>
+                <View style={styles.ctaWrap}>
+                  <TouchableOpacity
+                    onPress={onSubmit}
+                    disabled={!canSubmit}
+                    style={[styles.cta, !canSubmit && styles.ctaDisabled]}
+                    accessibilityRole="button"
+                  >
+                    <AppIcon name="paper-plane" size={18} color="#fff" />
+                    <Text style={styles.ctaText}>{submitting ? 'Sending...' : 'Send'}</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <Text style={styles.footnote}>
                   We’ll keep your details private and only share with our prayer team.
                 </Text>
               </View>
             </View>
+
           </ScrollView>
         </ImageBackground>
       </KeyboardAvoidingView>
@@ -452,17 +457,47 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardInner: {
-    padding: 16,
-    backgroundColor: COLORS.surface,
+    padding: 20,
+    backgroundColor: 'rgba(255,255,255,0.44)',
+    gap: 16,
   },
 
-  intro: { marginBottom: 10 },
+  intro: { gap: 12 },
+  kickerWrap: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.48)',
+  },
+  kicker: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 11,
+    color: COLORS.brand,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+  },
   sub: {
-    marginTop: 6,
-    fontFamily: 'Montserrat-Regular',
-    fontSize: 14,
-    color: 'rgba(17,24,39,0.8)',
-    lineHeight: 20,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 16,
+    color: 'rgba(15,23,42,0.92)',
+    lineHeight: 25,
+  },
+  requiredNote: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 12,
+    lineHeight: 16,
+    color: 'rgba(15,23,42,0.68)',
+  },
+  formSection: {
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.36)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    gap: 8,
   },
 
   labelRow: {
@@ -472,60 +507,72 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   label: {
-    fontFamily: 'Montserrat-Medium',
-    color: '#111827',
-    fontSize: 14,
-    marginBottom: 8,
+    fontFamily: 'Montserrat-SemiBold',
+    color: '#0F172A',
+    fontSize: 15,
+    marginBottom: 2,
   },
-  counter: {
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 12,
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
   },
-
   input: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.28)',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    flex: 1,
     paddingVertical: Platform.OS === 'ios' ? 12 : 10,
-    fontFamily: 'Montserrat-Regular',
-    color: '#111827',
+    fontFamily: 'Montserrat-Medium',
+    color: '#0F172A',
     fontSize: 16,
   },
 
-  textarea: {
+  textareaWrap: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.28)',
+    borderColor: 'rgba(255,255,255,0.3)',
     backgroundColor: 'rgba(255,255,255,0.72)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: 16,
+    padding: 12,
+    gap: 8,
+  },
+  textareaWrapWarn: {
+    borderColor: COLORS.warn,
+  },
+  textarea: {
     minHeight: 120,
-    fontFamily: 'Montserrat-Regular',
-    color: '#111827',
+    fontFamily: 'Montserrat-Medium',
+    color: '#0F172A',
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   textareaWarn: { borderColor: COLORS.warn },
 
   helperWarn: {
     marginTop: 6,
     color: COLORS.warn,
-    fontFamily: 'Montserrat-Medium',
+    fontFamily: 'Montserrat-SemiBold',
     fontSize: 12,
-    alignSelf: 'flex-end',
-    textAlign: 'right',
   },
   helperOk: {
     marginTop: 6,
-    color: COLORS.ok,
-    fontFamily: 'Montserrat-Medium',
+    color: 'rgba(15,23,42,0.72)',
+    fontFamily: 'Montserrat-SemiBold',
     fontSize: 12,
-    alignSelf: 'flex-end',
-    textAlign: 'right',
   },
-
+  consentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: -2,
+    gap: 10,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.36)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
   checkbox: {
     width: 22,
     height: 22,
@@ -538,17 +585,20 @@ const styles = StyleSheet.create({
   },
   consentText: {
     flex: 1,
-    color: '#374151',
-    fontFamily: 'Montserrat-Regular',
-    fontSize: 12,
+    color: 'rgba(15,23,42,0.84)',
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 13,
+    lineHeight: 20,
   },
-
+  ctaWrap: {
+    alignItems: 'center',
+    paddingTop: 2,
+  },
   cta: {
-    marginTop: 16,
     alignSelf: 'center',
-    minWidth: 140,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    minWidth: 164,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     borderRadius: 999,
     backgroundColor: COLORS.brand,
     flexDirection: 'row',
@@ -564,10 +614,11 @@ const styles = StyleSheet.create({
   },
 
   footnote: {
-    marginTop: 12,
+    marginTop: -2,
     textAlign: 'center',
-    fontFamily: 'Montserrat-Regular',
+    fontFamily: 'Montserrat-Medium',
     fontSize: 12,
-    color: COLORS.ok,
+    color: 'rgba(15,23,42,0.72)',
+    lineHeight: 18,
   },
 });

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Image,
-  ImageBackground,
   Linking,
   ScrollView,
   StyleSheet,
@@ -9,14 +8,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useBootstrap } from '~/hooks/useBootstrap';
-import { toAbsoluteSiteUrl } from '~/lib/contentApi';
+import { getCanonicalContactEmail, toAbsoluteSiteUrl } from '~/lib/contentApi';
 import AppIcon from '~/components/AppIcon';
-
-const BRAND_RED = '#B3282D';
-const INK = '#1F2937';
-const MUTED = '#6B7280';
-const SURFACE = '#F9FAFB';
+import PageSlogan from '~/components/PageSlogan';
+import { HOME_STYLES, type HomeStyle } from '~/lib/homeDesignStyles';
 
 const FAQS = [
   {
@@ -54,389 +51,558 @@ const FAQS = [
 type GivingMethod = 'eft' | 'snapscan' | 'paypal';
 
 export default function Generosity() {
+  const theme = HOME_STYLES.find((style) => style.id === 'glass') ?? HOME_STYLES[0];
   const { data, loading, error } = useBootstrap();
   const [activeMethod, setActiveMethod] = useState<GivingMethod>('eft');
   const [openFaqId, setOpenFaqId] = useState<string | null>(FAQS[0].id);
 
   if (loading) {
     return (
-      <View style={styles.stateWrap}>
-        <Text style={styles.stateText}>Loading generosity details…</Text>
-      </View>
+      <ScreenShell theme={theme}>
+        <StateCard
+          theme={theme}
+          title="Loading generosity details"
+          body="Pulling in the giving methods and support information."
+        />
+      </ScreenShell>
     );
   }
 
   if (error || !data) {
     return (
-      <View style={styles.stateWrap}>
-        <Text style={styles.stateTitle}>Generosity unavailable</Text>
-        <Text style={styles.stateText}>{error || 'Unable to load giving details.'}</Text>
-      </View>
+      <ScreenShell theme={theme}>
+        <StateCard
+          theme={theme}
+          title="Generosity unavailable"
+          body={error || 'Unable to load giving details.'}
+        />
+      </ScreenShell>
     );
   }
 
   const { bank, snapscan, paypal, annualReport } = data.giving;
-  const supportEmail = data.contact.email;
+  const supportEmail = getCanonicalContactEmail(data.contact.email);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <ImageBackground
-        source={require('../../assets/community-give-2.jpg')}
-        resizeMode="cover"
-        style={styles.hero}
-        imageStyle={styles.heroImage}
+    <ScreenShell theme={theme}>
+      <View
+        style={[
+          styles.hero,
+          {
+            borderColor: theme.heroBorder,
+            shadowColor: theme.shadow,
+          },
+        ]}
       >
-        <View style={styles.heroOverlay} />
-      </ImageBackground>
-
-      <View style={styles.headerBlock}>
-        <Text style={styles.heroTitle}>EXTRAVAGANT{'\n'}GENEROSITY</Text>
-        <Text style={styles.heroCopy}>
-          Generosity is our expression of who <Text style={styles.heroAccent}>Jesus</Text> is and
-          what He does.
-        </Text>
+        <LinearGradient colors={theme.heroGradient} style={StyleSheet.absoluteFill} />
+        <View style={[styles.heroGlowLeft, { backgroundColor: theme.orbTop }]} />
+        <View style={[styles.heroGlowRight, { backgroundColor: theme.orbMiddle }]} />
+        <View style={styles.heroInner}>
+          <Text style={styles.heroTitle}>
+            YOUR GENEROSITY CREATES MORE OPPORTUNITIES AND RESOURCES SO OTHERS CAN{' '}
+            <Text style={[styles.heroAccent, { color: theme.accent }]}>COME. SEE. JESUS.</Text>
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.impactBlock}>
-        <Text style={styles.impactTitle}>
-          Your generosity creates more opportunities and resources so others can
-        </Text>
-        <Text style={styles.impactAccent}>Come. See. Jesus</Text>
-      </View>
-
-      <View style={styles.methodsShell}>
-        <Text style={styles.methodsIntro}>
-          Below is a simple, guided way to give generously, step by step.
-        </Text>
-
-        <View style={styles.methodsCard}>
-          <Text style={styles.stepLabel}>Step 3 · CHOOSE PAYMENT METHOD</Text>
+      <View style={styles.content}>
+        <GlassCard theme={theme} style={styles.methodsCard}>
+          <Text style={[styles.methodsIntro, { color: theme.textSecondary }]}>
+            Below is a simple, guided way to give generously, step by step.
+          </Text>
 
           <View style={styles.methodTabs}>
             <MethodTab
               label="EFT"
               active={activeMethod === 'eft'}
+              theme={theme}
               onPress={() => setActiveMethod('eft')}
             />
             <MethodTab
               label="SnapScan"
               active={activeMethod === 'snapscan'}
+              theme={theme}
               onPress={() => setActiveMethod('snapscan')}
             />
             <MethodTab
               label="PayPal"
               active={activeMethod === 'paypal'}
+              theme={theme}
               onPress={() => setActiveMethod('paypal')}
             />
           </View>
 
           {activeMethod === 'eft' ? (
-            <View style={styles.methodPanel}>
-              <View style={styles.methodIconWrap}>
-                <AppIcon name="laptop" size={30} color={BRAND_RED} />
+            <View
+              style={[
+                styles.methodPanel,
+                {
+                  backgroundColor: theme.cardAlt,
+                  borderColor: theme.borderStrong,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.methodIconWrap,
+                  {
+                    backgroundColor: theme.accentSoft,
+                    borderColor: theme.borderStrong,
+                  },
+                ]}
+              >
+                <AppIcon name="laptop" size={28} color={theme.accent} />
               </View>
-              <Text style={styles.methodTitle}>EFT (Bank Transfer)</Text>
-              <View style={styles.detailList}>
-                <DetailRow label="Bank" value={bank.bankName} />
-                <DetailRow label="Account" value={bank.accountName} />
-                <DetailRow label="Number" value={bank.accountNumber} />
-                <DetailRow label="Branch" value={bank.branchCode} />
-                <DetailRow label="Type" value={bank.accountType} />
-                <DetailRow label="SWIFT" value={bank.swift} />
+              <Text style={[styles.methodTitle, { color: theme.textPrimary }]}>EFT (Bank Transfer)</Text>
+              <View style={[styles.detailList, styles.detailListCentered]}>
+                <DetailRow theme={theme} label="Bank" value={bank.bankName} centered />
+                <DetailRow theme={theme} label="Account" value={bank.accountName} centered />
+                <DetailRow theme={theme} label="Number" value={bank.accountNumber} centered />
+                <DetailRow theme={theme} label="Branch" value={bank.branchCode} centered />
+                <DetailRow theme={theme} label="Type" value={bank.accountType} centered />
+                <DetailRow theme={theme} label="SWIFT" value={bank.swift} centered />
               </View>
-              <Text style={styles.referenceText}>Reference: {bank.referenceHint}</Text>
+              <Text style={[styles.referenceText, { color: theme.textSecondary }]}>
+                Reference: {bank.referenceHint}
+              </Text>
             </View>
           ) : null}
 
           {activeMethod === 'snapscan' ? (
             <TouchableOpacity
-              style={styles.methodPanel}
+              style={[
+                styles.methodPanel,
+                {
+                  backgroundColor: theme.cardAlt,
+                  borderColor: theme.borderStrong,
+                },
+              ]}
               activeOpacity={0.9}
               onPress={() => Linking.openURL(snapscan.url)}
             >
-              <View style={styles.methodIconWrap}>
-                <AppIcon name="mobile-screen-button" size={30} color={BRAND_RED} />
+              <View
+                style={[
+                  styles.methodIconWrap,
+                  {
+                    backgroundColor: theme.accentSoft,
+                    borderColor: theme.borderStrong,
+                  },
+                ]}
+              >
+                <AppIcon name="mobile-screen" size={28} color={theme.accent} />
               </View>
-              <Text style={styles.methodTitle}>SnapScan</Text>
-              <Text style={styles.methodCopy}>Scan the QR code or tap below to give instantly.</Text>
+              <Text style={[styles.methodTitle, { color: theme.textPrimary }]}>SnapScan</Text>
+              <Text style={[styles.methodCopy, { color: theme.textSecondary }]}>
+                Scan the QR code or tap below to give instantly.
+              </Text>
               <Image
-                source={require('../../assets/giving/SnapCode.png')}
+                source={require('../../assets/giving/snapscan.png')}
                 style={styles.qrCode}
                 resizeMode="contain"
               />
-              <View style={styles.primaryAction}>
-                <Text style={styles.primaryActionText}>Give via SnapScan</Text>
+              <View
+                style={[
+                  styles.primaryAction,
+                  {
+                    backgroundColor: theme.accentSoft,
+                    borderColor: theme.borderStrong,
+                  },
+                ]}
+              >
+                <Text style={[styles.primaryActionText, { color: theme.textPrimary }]}>
+                  Give via SnapScan
+                </Text>
               </View>
             </TouchableOpacity>
           ) : null}
 
           {activeMethod === 'paypal' ? (
             <TouchableOpacity
-              style={styles.methodPanel}
+              style={[
+                styles.methodPanel,
+                {
+                  backgroundColor: theme.cardAlt,
+                  borderColor: theme.borderStrong,
+                },
+              ]}
               activeOpacity={0.9}
               onPress={() => Linking.openURL(paypal.donateUrl)}
             >
-              <View style={styles.methodIconWrap}>
-                <AppIcon name="paypal" size={30} color={BRAND_RED} />
+              <View
+                style={[
+                  styles.methodIconWrap,
+                  {
+                    backgroundColor: theme.accentSoft,
+                    borderColor: theme.borderStrong,
+                  },
+                ]}
+              >
+                <AppIcon name="paypal" size={28} color={theme.accent} />
               </View>
-              <Text style={styles.methodTitle}>PayPal</Text>
-              <Text style={styles.methodSubtitle}>International Giving</Text>
-              <Text style={styles.methodCopy}>
+              <Text style={[styles.methodTitle, { color: theme.textPrimary }]}>PayPal</Text>
+              <Text style={[styles.methodSubtitle, { color: theme.accent }]}>
+                International Giving
+              </Text>
+              <Text style={[styles.methodCopy, { color: theme.textSecondary }]}>
                 If you are giving from outside South Africa, PayPal is the simplest option.
               </Text>
-              <View style={styles.primaryAction}>
-                <Text style={styles.primaryActionText}>Give via PayPal</Text>
+              <View
+                style={[
+                  styles.primaryAction,
+                  {
+                    backgroundColor: theme.accentSoft,
+                    borderColor: theme.borderStrong,
+                  },
+                ]}
+              >
+                <Text style={[styles.primaryActionText, { color: theme.textPrimary }]}>
+                  Give via PayPal
+                </Text>
               </View>
             </TouchableOpacity>
           ) : null}
-        </View>
-      </View>
+        </GlassCard>
 
-      <View style={styles.reassuranceBlock}>
-        <Image
-          source={require('../../assets/giving/hand-heart.png')}
-          style={styles.reassuranceIcon}
-          resizeMode="contain"
-        />
-        <Text style={styles.reassuranceCopy}>
-          While we encourage online giving for security and simplicity, we gladly receive in-person
-          gifts during our weekend gatherings.
-        </Text>
-      </View>
-
-      <View style={styles.annualReportCard}>
-        <View style={styles.reportIconWrap}>
-          <AppIcon name="file-lines" size={28} color={BRAND_RED} />
-        </View>
-        <Text style={styles.annualReportTitle}>Annual Financial Report</Text>
-        <Text style={styles.annualReportCopy}>
-          We value transparency and faithful stewardship. This report reflects how generosity is
-          handled with care to serve the mission of The Life Place.
-        </Text>
-        <Text style={styles.annualReportContact}>
-          To receive this report, contact us at{' '}
-          <Text style={styles.inlineLink} onPress={() => Linking.openURL(`mailto:${supportEmail}`)}>
-            {supportEmail}
+        <GlassCard theme={theme} style={styles.reassuranceCard}>
+          <View
+            style={[
+              styles.reassuranceIconWrap,
+              {
+                backgroundColor: theme.accentSoft,
+                borderColor: theme.borderStrong,
+              },
+            ]}
+          >
+            <AppIcon name="hand-holding-heart" size={28} color={theme.accent} />
+          </View>
+          <Text style={[styles.reassuranceCopy, { color: theme.textPrimary }]}>
+            While we encourage online giving for security and simplicity, we gladly receive in-person
+            gifts during our weekend gatherings.
           </Text>
-          .
-        </Text>
-        <TouchableOpacity
-          style={styles.secondaryAction}
-          activeOpacity={0.88}
-          onPress={() => Linking.openURL(toAbsoluteSiteUrl(annualReport.pagePath))}
-        >
-          <Text style={styles.secondaryActionText}>{annualReport.label}</Text>
-        </TouchableOpacity>
-      </View>
+        </GlassCard>
 
-      <View style={styles.faqSection}>
-        <Text style={styles.faqHeading}>GIVING{'\n'}FAQS</Text>
-        <Text style={styles.faqIntro}>Common questions about giving at The Life Place.</Text>
+        <GlassCard theme={theme} style={styles.reportCard}>
+          <View
+            style={[
+              styles.reportIconWrap,
+              {
+                backgroundColor: theme.accentSoft,
+                borderColor: theme.borderStrong,
+              },
+            ]}
+          >
+            <AppIcon name="file-lines" size={24} color={theme.accent} />
+          </View>
+          <Text style={[styles.reportTitle, { color: theme.textPrimary }]}>Annual Financial Report</Text>
+          <Text style={[styles.reportCopy, { color: theme.textSecondary }]}>
+            We value transparency and faithful stewardship. This report reflects how generosity is
+            handled with care to serve the mission of The Life Place.
+          </Text>
+          <Text style={[styles.reportContact, { color: theme.textSecondary }]}>
+            To receive this report, contact us at
+          </Text>
+          <View
+            style={[
+              styles.emailLinkButton,
+              {
+                backgroundColor: theme.cardAlt,
+                borderColor: theme.borderStrong,
+              },
+            ]}
+          >
+            <Text style={[styles.inlineLink, { color: theme.accent }]}>{supportEmail}</Text>
+          </View>
+        </GlassCard>
 
-        <View style={styles.faqList}>
-          {FAQS.map((faq) => {
-            const isOpen = openFaqId === faq.id;
-            return (
-              <View key={faq.id} style={styles.faqCard}>
-                <TouchableOpacity
-                  style={styles.faqButton}
-                  activeOpacity={0.85}
-                  onPress={() => setOpenFaqId(isOpen ? null : faq.id)}
+        <GlassCard theme={theme} style={styles.faqSection}>
+          <Text style={[styles.faqHeading, { color: theme.textPrimary }]}>GIVING FAQS</Text>
+          <Text style={[styles.faqIntro, { color: theme.textSecondary }]}>
+            Common questions about giving at The Life Place.
+          </Text>
+
+          <View style={styles.faqList}>
+            {FAQS.map((faq) => {
+              const isOpen = openFaqId === faq.id;
+              return (
+                <View
+                  key={faq.id}
+                  style={[
+                    styles.faqCard,
+                    {
+                      backgroundColor: theme.cardAlt,
+                      borderColor: theme.borderStrong,
+                    },
+                  ]}
                 >
-                  <Text style={styles.faqQuestion}>{faq.question}</Text>
-                  <AppIcon name={isOpen ? 'chevron-up' : 'chevron-down'} size={20} color="#9CA3AF" />
-                </TouchableOpacity>
-                {isOpen ? (
-                  <Text style={styles.faqAnswer}>
-                    {faq.answer}
-                    {faq.id === 'receipt' ? (
-                      <>
-                        {' '}
-                        Email{' '}
-                        <Text
-                          style={styles.inlineLink}
-                          onPress={() => Linking.openURL(`mailto:${supportEmail}`)}
-                        >
-                          {supportEmail}
-                        </Text>
-                        .
-                      </>
-                    ) : null}
-                  </Text>
-                ) : null}
-              </View>
-            );
-          })}
-        </View>
+                  <TouchableOpacity
+                    style={styles.faqButton}
+                    activeOpacity={0.85}
+                    onPress={() => setOpenFaqId(isOpen ? null : faq.id)}
+                  >
+                    <Text style={[styles.faqQuestion, { color: theme.textPrimary }]}>
+                      {faq.question}
+                    </Text>
+                    <AppIcon
+                      name={isOpen ? 'chevron-up' : 'chevron-down'}
+                      size={20}
+                      color={theme.textSecondary}
+                    />
+                  </TouchableOpacity>
+                  {isOpen ? (
+                    <Text style={[styles.faqAnswer, { color: theme.textSecondary }]}>
+                      {faq.answer}
+                      {faq.id === 'receipt' ? (
+                        <>
+                          {' '}
+                          Email{' '}
+                          <Text style={[styles.inlineLink, { color: theme.accent }]}>{supportEmail}</Text>
+                          .
+                        </>
+                      ) : null}
+                    </Text>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
 
-        <Text style={styles.faqFooter}>
-          Still have questions?{' '}
-          <Text style={styles.inlineLink} onPress={() => Linking.openURL(`mailto:${supportEmail}`)}>
-            We&apos;re happy to help.
+          <Text style={[styles.faqFooter, { color: theme.textSecondary }]}>
+            Still have questions? We&apos;re happy to help at{' '}
+            <Text style={[styles.inlineLink, { color: theme.accent }]}>{supportEmail}</Text>.
           </Text>
-        </Text>
+        </GlassCard>
       </View>
+    </ScreenShell>
+  );
+}
 
-      <View style={styles.finalInvite}>
-        <Text style={styles.finalInviteTitle}>
-          Come. See. <Text style={styles.finalInviteAccent}>Jesus</Text>
-        </Text>
-        <Text style={styles.finalInviteCopy}>Join us this Sunday.</Text>
-      </View>
-    </ScrollView>
+function ScreenShell({
+  theme,
+  children,
+}: {
+  theme: HomeStyle;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.screen}>
+      <LinearGradient colors={theme.pageGradient} style={StyleSheet.absoluteFill} />
+      <BackgroundDecor theme={theme} />
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {children}
+        <PageSlogan inverse />
+      </ScrollView>
+    </View>
+  );
+}
+
+function BackgroundDecor({ theme }: { theme: HomeStyle }) {
+  return (
+    <>
+      <View style={[styles.orbTop, { backgroundColor: theme.orbTop }]} />
+      <View style={[styles.orbMiddle, { backgroundColor: theme.orbMiddle }]} />
+      <View style={[styles.orbBottom, { backgroundColor: theme.orbBottom }]} />
+    </>
+  );
+}
+
+function GlassCard({
+  theme,
+  style,
+  children,
+}: {
+  theme: HomeStyle;
+  style?: object;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      style={[
+        styles.glassCard,
+        style,
+        {
+          backgroundColor: theme.card,
+          borderColor: theme.borderStrong,
+          shadowColor: theme.shadow,
+        },
+      ]}
+    >
+      {children}
+    </View>
   );
 }
 
 function MethodTab({
   label,
   active,
+  theme,
   onPress,
 }: {
   label: string;
   active: boolean;
+  theme: HomeStyle;
   onPress: () => void;
 }) {
   return (
     <TouchableOpacity
-      style={[styles.methodTab, active ? styles.methodTabActive : null]}
+      style={[
+        styles.methodTab,
+        {
+          backgroundColor: active ? theme.pillActive : theme.cardAlt,
+          borderColor: active ? theme.accent : theme.borderStrong,
+        },
+      ]}
       onPress={onPress}
       activeOpacity={0.88}
     >
-      <Text style={[styles.methodTabText, active ? styles.methodTabTextActive : null]}>{label}</Text>
+      <Text
+        style={[
+          styles.methodTabText,
+          {
+            color: active ? theme.textPrimary : theme.textSecondary,
+          },
+        ]}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({
+  theme,
+  label,
+  value,
+  centered = false,
+}: {
+  theme: HomeStyle;
+  label: string;
+  value: string;
+  centered?: boolean;
+}) {
   return (
-    <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
+    <View style={[styles.detailRow, centered ? styles.detailRowCentered : null]}>
+      <Text style={[styles.detailLabel, centered ? styles.detailTextCentered : null, { color: theme.textPrimary }]}>
+        {label}
+      </Text>
+      <Text style={[styles.detailValue, centered ? styles.detailTextCentered : null, { color: theme.textSecondary }]}>
+        {value}
+      </Text>
     </View>
   );
 }
 
+function StateCard({
+  theme,
+  title,
+  body,
+}: {
+  theme: HomeStyle;
+  title: string;
+  body: string;
+}) {
+  return (
+    <GlassCard theme={theme} style={styles.stateCard}>
+      <Text style={[styles.stateTitle, { color: theme.textPrimary }]}>{title}</Text>
+      <Text style={[styles.stateText, { color: theme.textSecondary }]}>{body}</Text>
+    </GlassCard>
+  );
+}
+
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#07111F',
+  },
   container: {
     paddingBottom: 48,
-    backgroundColor: '#FFFFFF',
   },
   hero: {
-    minHeight: 240,
+    overflow: 'hidden',
+    minHeight: 248,
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 38,
+    borderWidth: 1,
+    justifyContent: 'center',
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
   },
-  heroImage: {
-    opacity: 0.96,
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.28)',
-  },
-  headerBlock: {
+  heroInner: {
     paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 8,
+    paddingVertical: 34,
     alignItems: 'center',
+  },
+  heroGlowLeft: {
+    position: 'absolute',
+    top: -70,
+    left: -74,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+  },
+  heroGlowRight: {
+    position: 'absolute',
+    right: -62,
+    bottom: -82,
+    width: 228,
+    height: 228,
+    borderRadius: 114,
   },
   heroTitle: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 38,
-    lineHeight: 44,
-    color: INK,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  heroCopy: {
-    marginTop: 18,
-    maxWidth: 320,
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 20,
-    lineHeight: 30,
-    color: MUTED,
-    textAlign: 'center',
-  },
-  heroAccent: {
-    color: BRAND_RED,
-  },
-  impactBlock: {
-    paddingHorizontal: 24,
-    paddingTop: 18,
-    alignItems: 'center',
-  },
-  impactTitle: {
     maxWidth: 340,
     fontFamily: 'Montserrat-Bold',
-    fontSize: 26,
-    lineHeight: 34,
-    color: INK,
+    fontSize: 28,
+    lineHeight: 36,
+    color: '#F8FBFF',
     textAlign: 'center',
     textTransform: 'uppercase',
   },
-  impactAccent: {
-    marginTop: 8,
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 28,
-    lineHeight: 34,
-    color: BRAND_RED,
-    textAlign: 'center',
+  heroAccent: {
+    textShadowRadius: 0,
   },
-  methodsShell: {
+  content: {
     paddingHorizontal: 20,
-    paddingTop: 28,
+    paddingTop: 22,
+    gap: 18,
+  },
+  glassCard: {
+    borderRadius: 30,
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
+  },
+  methodsCard: {
+    gap: 18,
   },
   methodsIntro: {
     fontFamily: 'Montserrat-Regular',
-    fontSize: 18,
-    lineHeight: 28,
-    color: MUTED,
+    fontSize: 17,
+    lineHeight: 27,
     textAlign: 'center',
-    marginBottom: 18,
-  },
-  methodsCard: {
-    borderRadius: 30,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-  },
-  stepLabel: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 16,
-    lineHeight: 22,
-    color: INK,
-    marginBottom: 18,
   },
   methodTabs: {
     gap: 10,
-    marginBottom: 16,
   },
   methodTab: {
     borderRadius: 18,
+    borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: '#F3F4F6',
-  },
-  methodTabActive: {
-    backgroundColor: BRAND_RED,
   },
   methodTabText: {
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 16,
-    color: INK,
     textAlign: 'center',
-  },
-  methodTabTextActive: {
-    color: '#FFFFFF',
   },
   methodPanel: {
     borderRadius: 26,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: 'rgba(249,250,251,0.9)',
     paddingHorizontal: 18,
     paddingVertical: 20,
     alignItems: 'center',
@@ -444,8 +610,8 @@ const styles = StyleSheet.create({
   methodIconWrap: {
     width: 58,
     height: 58,
-    borderRadius: 29,
-    backgroundColor: 'rgba(179,40,45,0.08)',
+    borderRadius: 18,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -454,7 +620,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-Bold',
     fontSize: 24,
     lineHeight: 30,
-    color: INK,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
@@ -464,7 +629,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: BRAND_RED,
     textAlign: 'center',
   },
   methodCopy: {
@@ -472,7 +636,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-Regular',
     fontSize: 15,
     lineHeight: 22,
-    color: MUTED,
     textAlign: 'center',
   },
   detailList: {
@@ -480,26 +643,32 @@ const styles = StyleSheet.create({
     marginTop: 18,
     gap: 10,
   },
+  detailListCentered: {
+    alignItems: 'center',
+  },
   detailRow: {
     gap: 4,
+  },
+  detailRowCentered: {
+    alignItems: 'center',
   },
   detailLabel: {
     fontFamily: 'Montserrat-Bold',
     fontSize: 14,
-    color: INK,
   },
   detailValue: {
     fontFamily: 'Montserrat-Regular',
     fontSize: 15,
     lineHeight: 22,
-    color: MUTED,
+  },
+  detailTextCentered: {
+    textAlign: 'center',
   },
   referenceText: {
     marginTop: 16,
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 14,
     lineHeight: 20,
-    color: MUTED,
     textAlign: 'center',
   },
   qrCode: {
@@ -511,124 +680,95 @@ const styles = StyleSheet.create({
     marginTop: 18,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: BRAND_RED,
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
   primaryActionText: {
     fontFamily: 'Montserrat-Bold',
     fontSize: 15,
-    color: BRAND_RED,
   },
-  reassuranceBlock: {
-    paddingHorizontal: 24,
-    paddingTop: 34,
+  reassuranceCard: {
     alignItems: 'center',
   },
-  reassuranceIcon: {
-    width: 46,
-    height: 46,
+  reassuranceIconWrap: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   reassuranceCopy: {
     maxWidth: 330,
     fontFamily: 'Montserrat-Regular',
-    fontSize: 22,
-    lineHeight: 32,
-    color: MUTED,
+    fontSize: 20,
+    lineHeight: 30,
     textAlign: 'center',
   },
-  annualReportCard: {
-    marginTop: 34,
-    marginHorizontal: 20,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 22,
-    paddingVertical: 24,
+  reportCard: {
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
   },
   reportIconWrap: {
     width: 56,
     height: 56,
     borderRadius: 18,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  annualReportTitle: {
-    marginTop: 10,
+  reportTitle: {
+    marginTop: 12,
     fontFamily: 'Montserrat-Bold',
     fontSize: 28,
     lineHeight: 34,
-    color: INK,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
-  annualReportCopy: {
+  reportCopy: {
     marginTop: 14,
     fontFamily: 'Montserrat-Regular',
     fontSize: 16,
     lineHeight: 25,
-    color: MUTED,
     textAlign: 'center',
   },
-  annualReportContact: {
+  reportContact: {
     marginTop: 14,
     fontFamily: 'Montserrat-Regular',
     fontSize: 15,
     lineHeight: 24,
-    color: MUTED,
     textAlign: 'center',
   },
-  secondaryAction: {
-    marginTop: 18,
+  emailLinkButton: {
+    marginTop: 10,
     borderRadius: 18,
-    backgroundColor: SURFACE,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  secondaryActionText: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 15,
-    color: INK,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   faqSection: {
-    paddingHorizontal: 20,
-    paddingTop: 34,
+    gap: 12,
   },
   faqHeading: {
     fontFamily: 'Montserrat-Bold',
     fontSize: 30,
     lineHeight: 36,
-    color: INK,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
   faqIntro: {
-    marginTop: 10,
     fontFamily: 'Montserrat-Regular',
     fontSize: 16,
     lineHeight: 24,
-    color: MUTED,
     textAlign: 'center',
   },
   faqList: {
-    marginTop: 18,
+    marginTop: 6,
     gap: 12,
   },
   faqCard: {
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
@@ -643,66 +783,62 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 16,
     lineHeight: 22,
-    color: INK,
   },
   faqAnswer: {
     marginTop: 12,
     fontFamily: 'Montserrat-Regular',
     fontSize: 15,
     lineHeight: 24,
-    color: MUTED,
   },
   faqFooter: {
-    marginTop: 18,
+    marginTop: 6,
     fontFamily: 'Montserrat-Regular',
     fontSize: 15,
     lineHeight: 22,
-    color: MUTED,
     textAlign: 'center',
   },
   inlineLink: {
-    color: BRAND_RED,
     fontFamily: 'Montserrat-SemiBold',
   },
-  finalInvite: {
-    paddingTop: 40,
-    paddingHorizontal: 24,
+  stateCard: {
+    marginHorizontal: 20,
+    marginTop: 24,
     alignItems: 'center',
-  },
-  finalInviteTitle: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 34,
-    lineHeight: 40,
-    color: INK,
-    textAlign: 'center',
-  },
-  finalInviteAccent: {
-    color: BRAND_RED,
-  },
-  finalInviteCopy: {
-    marginTop: 10,
-    fontFamily: 'Montserrat-Regular',
-    fontSize: 18,
-    color: MUTED,
-    textAlign: 'center',
-  },
-  stateWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#FFFFFF',
-    gap: 8,
   },
   stateTitle: {
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 18,
-    color: INK,
+    textAlign: 'center',
   },
   stateText: {
+    marginTop: 8,
     fontFamily: 'Montserrat-Regular',
     fontSize: 14,
-    color: MUTED,
+    lineHeight: 21,
     textAlign: 'center',
+  },
+  orbTop: {
+    position: 'absolute',
+    top: 72,
+    left: -58,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+  },
+  orbMiddle: {
+    position: 'absolute',
+    top: 360,
+    right: -70,
+    width: 228,
+    height: 228,
+    borderRadius: 114,
+  },
+  orbBottom: {
+    position: 'absolute',
+    bottom: 110,
+    left: 36,
+    width: 196,
+    height: 196,
+    borderRadius: 98,
   },
 });

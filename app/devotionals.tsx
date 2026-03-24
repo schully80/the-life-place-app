@@ -1,218 +1,610 @@
-import { Share, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useMemo, useState } from 'react';
-import { useBootstrap } from '~/hooks/useBootstrap';
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppIcon from '~/components/AppIcon';
+import PageSlogan from '~/components/PageSlogan';
+import { useDevotionals } from '~/hooks/useDevotionals';
+import { HOME_STYLES, type HomeStyle } from '~/lib/homeDesignStyles';
+
+const BLOG_URL = 'https://schulteretyang.substack.com';
+
+function formatDateLabel(date: Date) {
+  return date.toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function getDayOfYear(date = new Date()) {
+  const startOfYear = new Date(date.getFullYear(), 0, 0);
+  const diff = date.getTime() - startOfYear.getTime();
+  const oneDay = 1000 * 60 * 60 * 24;
+  return Math.floor(diff / oneDay);
+}
+
+function addDays(date: Date, delta: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + delta);
+  return next;
+}
 
 export default function Devotionals() {
-  const { data, loading, error } = useBootstrap();
-  const devotionals = data?.devotionals || [];
-  const todayIndex = useMemo(
-    () => (devotionals.length ? (new Date().getDate() - 1) % devotionals.length : 0),
-    [devotionals.length]
+  const insets = useSafeAreaInsets();
+  const theme = HOME_STYLES.find((style) => style.id === 'glass') ?? HOME_STYLES[0];
+  const { data: devotionals, loading, error } = useDevotionals();
+  const [activeDate, setActiveDate] = useState(() => new Date());
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
+  const currentDateLabel = useMemo(() => formatDateLabel(activeDate), [activeDate]);
+  const yearDevotionals = useMemo(() => {
+    const activeYear = activeDate.getFullYear();
+    const blogDevotionals = devotionals
+      .filter((item) => {
+        if (item.sourceType !== 'blog' || !item.publishedAt) return false;
+        const publishedAt = new Date(item.publishedAt);
+        if (Number.isNaN(publishedAt.getTime())) return false;
+        return publishedAt.getFullYear() === activeYear;
+      })
+      .sort((left, right) => {
+        const leftTime = left.publishedAt ? new Date(left.publishedAt).getTime() : 0;
+        const rightTime = right.publishedAt ? new Date(right.publishedAt).getTime() : 0;
+        return leftTime - rightTime;
+      });
+
+    if (blogDevotionals.length > 0) return blogDevotionals;
+
+    return devotionals.filter((item) => item.sourceType !== 'blog');
+  }, [activeDate, devotionals]);
+  const activeIndex = useMemo(
+    () => (yearDevotionals.length ? (getDayOfYear(activeDate) - 1) % yearDevotionals.length : 0),
+    [activeDate, yearDevotionals]
   );
-  const [index, setIndex] = useState(0);
-  const activeIndex = devotionals.length ? (index || todayIndex) % devotionals.length : 0;
-  const devotion = devotionals[activeIndex];
+  const devotion = yearDevotionals[activeIndex];
 
-  if (loading) {
-    return (
-      <View style={styles.stateWrap}>
-        <Text style={styles.stateText}>Loading devotionals…</Text>
-      </View>
-    );
-  }
+  const openUrl = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      // Keep the screen quiet if the device cannot open the link.
+    }
+  };
 
-  if (error || !devotion) {
-    return (
-      <View style={styles.stateWrap}>
-        <Text style={styles.stateTitle}>Devotionals unavailable</Text>
-        <Text style={styles.stateText}>{error || 'No devotionals are available right now.'}</Text>
-      </View>
-    );
-  }
+  const eyebrow = devotion?.sourceType === 'blog' ? 'Daily Devotional' : 'Daily Devotional';
+  const metaLine = devotion?.sourceType === 'blog'
+    ? [devotion.categories?.[0]].filter(Boolean).join(' • ')
+    : [devotion?.scripture, devotion?.reference].filter(Boolean).join(' • ');
 
   const onShare = async () => {
-    const text = [devotion.title, devotion.scripture, ...devotion.body, devotion.prayer, devotion.action]
+    if (!devotion) return;
+
+    const text = [
+      'The Life Place Devotional',
+      devotion.title,
+      currentDateLabel,
+      metaLine,
+      ...devotion.body,
+      devotion.prayer,
+      devotion.action,
+      devotion.sourceUrl ? `Read more: ${devotion.sourceUrl}` : null,
+    ]
       .filter(Boolean)
       .join('\n\n');
+
     await Share.share({ message: text });
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>Daily Devotional</Text>
-          <Text style={styles.date}>
-            {new Date().toLocaleDateString(undefined, {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            })}
-          </Text>
-          <Text style={styles.title}>{devotion.title}</Text>
+    <View style={styles.screen}>
+      <LinearGradient colors={theme.pageGradient} style={StyleSheet.absoluteFill} />
+      <BackgroundDecor theme={theme} />
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          {loading ? (
+            <StateCard
+              theme={theme}
+              title="Loading devotionals"
+              body="Pulling in today’s reading from the devotional stream."
+              loading
+            />
+          ) : error || !devotion ? (
+            <StateCard
+              theme={theme}
+              title="Devotionals unavailable"
+              body={
+                error ||
+                `No devotionals are available for ${activeDate.getFullYear()} right now.`
+              }
+              actionLabel="Open Blog"
+              onPress={() => {
+                void openUrl(BLOG_URL);
+              }}
+            />
+          ) : (
+            <>
+              <View
+                style={[
+                  styles.heroCard,
+                  {
+                    borderColor: theme.heroBorder,
+                    borderRadius: theme.radiusHero,
+                    shadowColor: theme.shadow,
+                  },
+                ]}
+              >
+                <LinearGradient colors={theme.heroGradient} style={StyleSheet.absoluteFill} />
+
+                <View
+                  style={[
+                    styles.heroKicker,
+                    {
+                      backgroundColor: theme.accentSoft,
+                      borderColor: theme.borderStrong,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.heroKickerText, { color: theme.accent }]}>{eyebrow}</Text>
+                </View>
+
+                <View style={styles.heroTopRow}>
+                  <View style={styles.heroTextBlock}>
+                    <Text style={[styles.heroDate, { color: theme.textSecondary }]}>
+                      {currentDateLabel}
+                    </Text>
+                    <Text style={[styles.heroTitle, { color: theme.textPrimary }]}>
+                      {devotion.title}
+                    </Text>
+                  </View>
+
+                  <Pressable
+                    onPress={() => {
+                      setActiveActionId('share');
+                      void onShare();
+                    }}
+                    style={(state) => {
+                      const isHovered = 'hovered' in state && Boolean((state as { hovered?: boolean }).hovered);
+                      const isActive = activeActionId === 'share' || isHovered || state.pressed;
+
+                      return [
+                        styles.shareButton,
+                        {
+                          backgroundColor: theme.cardAlt,
+                          borderColor: isActive ? theme.accent : theme.borderStrong,
+                          shadowColor: theme.shadow,
+                        },
+                        isHovered ? styles.shareButtonHover : null,
+                        state.pressed ? styles.shareButtonPressed : null,
+                      ];
+                    }}
+                  >
+                    <AppIcon name="share-nodes" size={16} color={theme.accent} />
+                    <Text style={[styles.shareButtonText, { color: theme.textPrimary }]}>Share</Text>
+                  </Pressable>
+                </View>
+
+                {metaLine ? (
+                  <View
+                    style={[
+                      styles.metaCard,
+                      {
+                        backgroundColor: theme.cardAlt,
+                        borderColor: theme.borderStrong,
+                        borderRadius: theme.radiusCard - 6,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.metaText, { color: theme.accent }]}>{metaLine}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View
+                style={[
+                  styles.contentCard,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.borderStrong,
+                    borderRadius: theme.radiusCard,
+                    shadowColor: theme.shadow,
+                  },
+                ]}
+              >
+                {devotion.body.map((paragraph) => (
+                  <Text key={paragraph} style={[styles.bodyText, { color: theme.textPrimary }]}>
+                    {paragraph}
+                  </Text>
+                ))}
+
+                {devotion.prayer ? (
+                  <PanelCard theme={theme} label="Prayer" body={devotion.prayer} />
+                ) : null}
+
+                {devotion.action ? (
+                  <PanelCard theme={theme} label="Today" body={devotion.action} accent />
+                ) : null}
+              </View>
+
+              {devotion.sourceUrl ? (
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[
+                    styles.primaryButton,
+                    {
+                      backgroundColor: theme.accent,
+                      borderColor: theme.borderStrong,
+                    },
+                  ]}
+                  onPress={() => {
+                    void openUrl(devotion.sourceUrl!);
+                  }}
+                >
+                  <Text style={[styles.primaryButtonText, { color: theme.textInverse }]}>
+                    Read Devotional
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
+              <View style={styles.pager}>
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[
+                    styles.pagerButton,
+                    {
+                      backgroundColor: theme.cardAlt,
+                      borderColor: theme.borderStrong,
+                    },
+                  ]}
+                  onPress={() => setActiveDate((current) => addDays(current, -1))}
+                >
+                  <Text style={[styles.pagerButtonText, { color: theme.textPrimary }]}>Previous</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[
+                    styles.pagerButton,
+                    {
+                      backgroundColor: theme.cardAlt,
+                      borderColor: theme.borderStrong,
+                    },
+                  ]}
+                  onPress={() => setActiveDate((current) => addDays(current, 1))}
+                >
+                  <Text style={[styles.pagerButtonText, { color: theme.textPrimary }]}>Next</Text>
+                </TouchableOpacity>
+              </View>
+
+              <PageSlogan inverse />
+            </>
+          )}
         </View>
-        <TouchableOpacity onPress={onShare} style={styles.iconBtn}>
-          <AppIcon name="share-nodes" size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      </ScrollView>
+    </View>
+  );
+}
 
-      <View style={styles.card}>
-        <Text style={styles.scripture}>
-          {devotion.scripture}
-          {devotion.reference ? ` • ${devotion.reference}` : ''}
-        </Text>
-      </View>
+function PanelCard({
+  theme,
+  label,
+  body,
+  accent = false,
+}: {
+  theme: HomeStyle;
+  label: string;
+  body: string;
+  accent?: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.panelCard,
+        {
+          backgroundColor: accent ? theme.accentSoft : theme.cardAlt,
+          borderColor: accent ? theme.accentMuted : theme.borderStrong,
+          borderRadius: theme.radiusCard - 8,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.panelLabel,
+          {
+            color: accent ? theme.accent : theme.textSecondary,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+      <Text style={[styles.panelBody, { color: theme.textPrimary }]}>{body}</Text>
+    </View>
+  );
+}
 
-      <View style={styles.card}>
-        {devotion.body.map((paragraph) => (
-          <Text key={paragraph} style={styles.bodyText}>
-            {paragraph}
-          </Text>
-        ))}
-
-        {devotion.prayer ? (
-          <>
-            <Text style={styles.sectionLabel}>Prayer</Text>
-            <Text style={styles.bodyText}>{devotion.prayer}</Text>
-          </>
-        ) : null}
-
-        {devotion.action ? (
-          <>
-            <Text style={styles.sectionLabel}>Today</Text>
-            <Text style={styles.bodyText}>{devotion.action}</Text>
-          </>
-        ) : null}
-      </View>
-
-      <View style={styles.pager}>
+function StateCard({
+  theme,
+  title,
+  body,
+  actionLabel,
+  onPress,
+  loading = false,
+}: {
+  theme: HomeStyle;
+  title: string;
+  body: string;
+  actionLabel?: string;
+  onPress?: () => void;
+  loading?: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.stateCard,
+        {
+          backgroundColor: theme.card,
+          borderColor: theme.borderStrong,
+          borderRadius: theme.radiusCard,
+          shadowColor: theme.shadow,
+        },
+      ]}
+    >
+      {loading ? <ActivityIndicator size="large" color={theme.accent} /> : null}
+      <Text style={[styles.stateTitle, { color: theme.textPrimary }]}>{title}</Text>
+      <Text style={[styles.stateBody, { color: theme.textSecondary }]}>{body}</Text>
+      {actionLabel && onPress ? (
         <TouchableOpacity
-          onPress={() => setIndex((activeIndex - 1 + devotionals.length) % devotionals.length)}
-          style={styles.pillBtn}
+          activeOpacity={0.88}
+          style={[
+            styles.primaryButton,
+            styles.stateButton,
+            {
+              backgroundColor: theme.accent,
+              borderColor: theme.borderStrong,
+            },
+          ]}
+          onPress={onPress}
         >
-          <AppIcon name="back" size={18} color="#B3282D" />
-          <Text style={styles.pillText}>Previous</Text>
+          <Text style={[styles.primaryButtonText, { color: theme.textInverse }]}>{actionLabel}</Text>
         </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+}
 
-        <TouchableOpacity
-          onPress={() => setIndex((activeIndex + 1) % devotionals.length)}
-          style={styles.pillBtn}
-        >
-          <Text style={styles.pillText}>Next</Text>
-          <AppIcon name="forward" size={18} color="#B3282D" />
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+function BackgroundDecor({ theme }: { theme: HomeStyle }) {
+  return (
+    <>
+      <View style={[styles.orbLarge, { backgroundColor: theme.orbTop }]} />
+      <View style={[styles.orbMedium, { backgroundColor: theme.orbMiddle }]} />
+      <View style={[styles.orbSmall, { backgroundColor: theme.orbBottom }]} />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 22,
-    paddingBottom: 36,
-    backgroundColor: '#FFFFFF',
-    gap: 12,
+  screen: {
+    flex: 1,
+    backgroundColor: '#07111F',
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  scrollContent: {
+    flexGrow: 1,
   },
-  eyebrow: {
+  content: {
+    paddingHorizontal: 20,
+    gap: 24,
+  },
+  heroCard: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    padding: 24,
+    gap: 24,
+    shadowOpacity: 0.12,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 6,
+  },
+  heroKicker: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  heroKickerText: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 13,
-    color: '#6B7280',
+    fontSize: 12,
+    letterSpacing: 1.8,
     textTransform: 'uppercase',
-    letterSpacing: 2.2,
   },
-  date: {
-    marginTop: 10,
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 18,
+  },
+  heroTextBlock: {
+    flex: 1,
+    gap: 12,
+  },
+  heroDate: {
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 12,
-    color: '#6B7280',
-    textTransform: 'uppercase',
     letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
-  title: {
-    marginTop: 4,
+  heroTitle: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 30,
-    lineHeight: 34,
-    color: '#111827',
+    fontSize: 32,
+    lineHeight: 38,
   },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#B3282D',
+  shareButton: {
+    minWidth: 132,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  card: {
-    borderRadius: 18,
+    flexDirection: 'row',
+    gap: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 16,
-    gap: 10,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
-  scripture: {
+  shareButtonHover: {
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 8,
+  },
+  shareButtonPressed: {
+    opacity: 0.96,
+  },
+  shareButtonText: {
     fontFamily: 'Montserrat-SemiBold',
-    fontSize: 15,
-    color: '#B3282D',
+    fontSize: 16,
+  },
+  metaCard: {
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  metaText: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 14,
+    letterSpacing: 0.3,
     textAlign: 'center',
+  },
+  contentCard: {
+    borderWidth: 1,
+    padding: 22,
+    gap: 22,
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   bodyText: {
     fontFamily: 'Montserrat-Regular',
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#111827',
+    fontSize: 16,
+    lineHeight: 26,
   },
-  sectionLabel: {
-    fontFamily: 'Montserrat-SemiBold',
+  panelCard: {
+    borderWidth: 1,
+    padding: 18,
+    gap: 12,
+  },
+  panelLabel: {
+    fontFamily: 'Montserrat-Bold',
     fontSize: 12,
-    color: '#6B7280',
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 8,
+  },
+  panelBody: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  primaryButton: {
+    alignSelf: 'center',
+    minHeight: 46,
+    borderWidth: 1,
+    borderRadius: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+  },
+  primaryButtonText: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 14,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   pager: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 14,
   },
-  pillBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  pagerButton: {
+    minHeight: 42,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
     borderRadius: 999,
-  },
-  pillText: {
-    fontFamily: 'Montserrat-SemiBold',
-    color: '#B3282D',
-  },
-  stateWrap: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#FFFFFF',
-    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  pagerButtonText: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 14,
+  },
+  stateCard: {
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    gap: 16,
+    alignItems: 'center',
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   stateTitle: {
-    fontFamily: 'Montserrat-SemiBold',
-    fontSize: 18,
-    color: '#111827',
-  },
-  stateText: {
-    fontFamily: 'Montserrat-Regular',
-    fontSize: 14,
-    color: '#6B7280',
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 24,
     textAlign: 'center',
+  },
+  stateBody: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  stateButton: {
+    alignSelf: 'stretch',
+    marginTop: 4,
+  },
+  orbLarge: {
+    position: 'absolute',
+    top: -110,
+    right: -60,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+  },
+  orbMedium: {
+    position: 'absolute',
+    top: 260,
+    left: -70,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  orbSmall: {
+    position: 'absolute',
+    bottom: 120,
+    right: 10,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
   },
 });

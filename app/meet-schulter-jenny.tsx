@@ -6,11 +6,11 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  Linking,
-  Alert,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { useBootstrap } from '~/hooks/useBootstrap';
+import { openExternalUrl } from '~/lib/externalLinks';
+import PageSlogan from '~/components/PageSlogan';
 
 const BRAND_RED = '#B3282D';
 const WARM = '#4B5563';
@@ -19,19 +19,6 @@ export default function MeetSchulterJenny() {
   const { data } = useBootstrap();
   const substackUrl = data?.links.blogUrl || 'https://schulteretyang.substack.com';
   const snapscanUrl = data?.giving.snapscan.url || 'https://pos.snapscan.io/qr/VISFNLkM';
-
-  const openUrl = async (url: string, label?: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (!supported) {
-        Alert.alert('Unable to open link', `${label ?? 'This link'} is not supported on this device.`);
-        return;
-      }
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert('Something went wrong', 'Please try again.');
-    }
-  };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
@@ -75,7 +62,7 @@ export default function MeetSchulterJenny() {
               <TouchableOpacity
                 style={styles.ctaOutline}
                 activeOpacity={0.9}
-                onPress={() => openUrl(substackUrl, 'Substack')}
+                onPress={() => void openExternalUrl(substackUrl, { label: 'Substack' })}
                 accessibilityRole="button"
                 accessibilityLabel="Open Schulter’s Substack"
               >
@@ -94,7 +81,7 @@ export default function MeetSchulterJenny() {
               <TouchableOpacity
                 style={styles.ctaOutline}
                 activeOpacity={0.9}
-                onPress={() => openUrl(snapscanUrl, 'SnapScan')}
+                onPress={() => void openExternalUrl(snapscanUrl, { label: 'SnapScan' })}
                 accessibilityRole="button"
                 accessibilityLabel="Open SnapScan portal"
               >
@@ -103,6 +90,8 @@ export default function MeetSchulterJenny() {
             </View>
           </View>
         </View>
+
+        <PageSlogan />
       </ScrollView>
     </View>
   );

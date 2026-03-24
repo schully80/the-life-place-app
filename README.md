@@ -11,6 +11,26 @@ npm run start
 ```
 Press `i` (iOS), `a` (Android), or scan the QR with Expo Go.
 
+## Dev Client Workflow
+For this project, prefer Expo Dev Client over Expo Go.
+
+Local simulator/emulator workflow:
+```bash
+npm run dev-client:ios
+npm run dev-client:android
+```
+
+After the native app is installed once, use:
+```bash
+npm run start:dev-client
+```
+
+Cloud development builds for physical devices:
+```bash
+npm run eas:dev-client:ios
+npm run eas:dev-client:android
+```
+
 ## Structure
 - `app/` routes & screens (Expo Router)
 - `components/` shared UI

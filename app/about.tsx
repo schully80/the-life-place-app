@@ -1,6 +1,7 @@
 import { ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useBootstrap } from '~/hooks/useBootstrap';
 import AppIcon, { AppIconName } from '~/components/AppIcon';
+import PageSlogan from '~/components/PageSlogan';
 
 const BRAND_RED = '#B3282D';
 const INK = '#1F2937';
@@ -79,12 +80,7 @@ export default function About() {
         ))}
       </View>
 
-      <View style={styles.finalInvite}>
-        <Text style={styles.finalInviteTitle}>
-          Come. See. <Text style={styles.finalInviteAccent}>Jesus</Text>
-        </Text>
-        <Text style={styles.finalInviteCopy}>Join us this Sunday.</Text>
-      </View>
+      <PageSlogan />
     </ScrollView>
   );
 }

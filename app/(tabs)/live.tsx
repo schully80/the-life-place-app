@@ -3,28 +3,66 @@ import {
   ActivityIndicator,
   Linking,
   Platform,
-  Share,
+  Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { fetchLive } from '~/lib/contentApi';
-import AppIcon, { AppIconName } from '~/components/AppIcon';
+import AppIcon, { type AppIconName } from '~/components/AppIcon';
+import { HOME_STYLES, type HomeStyle } from '~/lib/homeDesignStyles';
+import PageSlogan from '~/components/PageSlogan';
 
 type LivePayload = Awaited<ReturnType<typeof fetchLive>>;
 
 const BRAND_RED = '#B3282D';
-const INK = '#1F2937';
-const MUTED = '#6B7280';
 const NativeWebView = Platform.OS === 'web' ? null : require('react-native-webview').WebView;
+const DAY_INDEX: Record<string, number> = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+
+function getCountdownLabel(service: LivePayload['service'], isLive: boolean) {
+  if (isLive) return 'We are live now!';
+
+  const serviceDay = DAY_INDEX[service.day];
+  const [serviceHour, serviceMinute] = service.startTime.split(':').map(Number);
+  if (serviceDay === undefined || Number.isNaN(serviceHour) || Number.isNaN(serviceMinute)) {
+    return '';
+  }
+
+  const now = new Date();
+  const nextService = new Date();
+  nextService.setDate(now.getDate() + ((serviceDay + 7 - now.getDay()) % 7));
+  nextService.setHours(serviceHour, serviceMinute, 0, 0);
+
+  const diff = nextService.getTime() - now.getTime();
+  if (diff <= 0) return 'We are live now!';
+
+  const hours = Math.floor(diff / 1000 / 60 / 60);
+  const minutes = Math.floor((diff / 1000 / 60) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+
+  return `${hours}h ${minutes}m ${seconds}s until next service`;
+}
 
 export default function LiveScreen() {
   const router = useRouter();
+  const theme = HOME_STYLES.find((style) => style.id === 'glass') ?? HOME_STYLES[0];
   const [liveData, setLiveData] = useState<LivePayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
+  const [countdownLabel, setCountdownLabel] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -47,6 +85,21 @@ export default function LiveScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!liveData) {
+      setCountdownLabel('');
+      return;
+    }
+
+    const updateCountdown = () => {
+      setCountdownLabel(getCountdownLabel(liveData.service, liveData.live));
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
+  }, [liveData]);
+
   const handleShare = async () => {
     if (!liveData) return;
 
@@ -59,133 +112,252 @@ export default function LiveScreen() {
 
   if (loading) {
     return (
-      <View style={styles.stateWrap}>
-        <ActivityIndicator size="large" color={BRAND_RED} />
-        <Text style={styles.stateText}>Checking live status…</Text>
-      </View>
+      <ScreenShell theme={theme}>
+        <View style={styles.stateWrap}>
+          <StateCard theme={theme}>
+            <ActivityIndicator size="large" color={theme.accent} />
+            <Text style={[styles.stateText, { color: theme.textSecondary }]}>Checking live status...</Text>
+          </StateCard>
+        </View>
+      </ScreenShell>
     );
   }
 
   if (!liveData) {
     return (
-      <View style={styles.stateWrap}>
-        <Text style={styles.stateTitle}>Live unavailable</Text>
-        <Text style={styles.stateText}>
-          We could not load the live experience right now. Please try again shortly.
-        </Text>
-      </View>
+      <ScreenShell theme={theme}>
+        <View style={styles.stateWrap}>
+          <StateCard theme={theme}>
+            <Text style={[styles.stateTitle, { color: theme.textPrimary }]}>Live unavailable</Text>
+            <Text style={[styles.stateText, { color: theme.textSecondary }]}>
+              We could not load the live experience right now. Please try again shortly.
+            </Text>
+          </StateCard>
+        </View>
+      </ScreenShell>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.hero}>
-        <View style={styles.heroGlowLeft} />
-        <View style={styles.heroGlowRight} />
+    <ScreenShell theme={theme}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.hero}>
+          <View style={styles.heroGlowLeft} />
+          <View style={styles.heroGlowRight} />
 
-        <Text style={styles.heroEyebrow}>{liveData.service.label}</Text>
-        <Text style={styles.heroTitle}>
-          Join Us <Text style={styles.heroAccent}>Live</Text>
-        </Text>
-        <Text style={styles.heroCopy}>
-          {liveData.live
-            ? 'The stream is live now. Watch here or open it directly on YouTube.'
-            : `We are currently offline. Join us during ${liveData.service.label.toLowerCase()} or watch on YouTube.`}
-        </Text>
+          <Text style={styles.heroEyebrow}>{liveData.service.label}</Text>
 
-        <TouchableOpacity
-          style={styles.heroButton}
-          onPress={() => void handleOpenUrl(liveData.watchUrl)}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.heroButtonText}>{liveData.live ? 'Watch Now' : 'Open YouTube'}</Text>
-        </TouchableOpacity>
-      </View>
+          {countdownLabel ? (
+            <Text style={styles.countdownText}>{countdownLabel}</Text>
+          ) : null}
+        </View>
 
-      <View style={styles.playerSection}>
-        <View style={styles.playerGlow} />
-        <View style={styles.playerFrame}>
-          <View style={styles.badgeWrap}>
-            <View style={[styles.statusBadge, liveData.live ? styles.badgeLive : styles.badgeOffline]}>
-              <View style={[styles.statusDot, liveData.live ? styles.dotLive : styles.dotOffline]} />
-              <Text style={styles.statusText}>
-                {liveData.live ? 'Live Now' : `Offline • ${liveData.service.label}`}
-              </Text>
+        <View style={styles.contentShell}>
+          <View
+            style={[
+              styles.playerSection,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.borderStrong,
+                shadowColor: theme.shadow,
+              },
+            ]}
+          >
+            <View style={[styles.playerGlow, { backgroundColor: theme.accentSoft }]} />
+
+            <View style={[styles.playerFrame, { borderColor: theme.borderStrong }]}>
+              <View style={styles.badgeWrap}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: liveData.live ? theme.pillActive : theme.pill },
+                  ]}
+                >
+                  <View style={[styles.statusDot, liveData.live ? styles.dotLive : styles.dotOffline]} />
+                  <Text style={[styles.statusText, { color: theme.textPrimary }]}>
+                    {liveData.live ? 'Live Now' : `Offline • ${liveData.service.label}`}
+                  </Text>
+                </View>
+              </View>
+
+              {Platform.OS === 'web' || !NativeWebView ? (
+                <View style={[styles.webVideoFallback, { backgroundColor: theme.cardAlt }]}>
+                  <AppIcon name="youtube" size={30} color={theme.accent} />
+                  <Text style={[styles.webVideoFallbackTitle, { color: theme.textPrimary }]}>
+                    Open the live stream on YouTube
+                  </Text>
+                  <Text style={[styles.webVideoFallbackCopy, { color: theme.textSecondary }]}>
+                    The web app hands this experience off to YouTube so the live page stays reliable on Cloudflare Pages.
+                  </Text>
+                </View>
+              ) : (
+                <NativeWebView
+                  source={{ uri: liveData.embedUrl }}
+                  style={styles.video}
+                  allowsFullscreenVideo
+                  startInLoadingState
+                />
+              )}
+            </View>
+
+            <View style={styles.actionRow}>
+              <ActionCard
+                theme={theme}
+                icon="share-nodes"
+                label="Share"
+                active={activeActionId === 'share'}
+                onPress={() => {
+                  setActiveActionId('share');
+                  void handleShare();
+                }}
+              />
             </View>
           </View>
 
-          {Platform.OS === 'web' || !NativeWebView ? (
-            <View style={styles.webVideoFallback}>
-              <AppIcon name="youtube" size={30} color={BRAND_RED} />
-              <Text style={styles.webVideoFallbackTitle}>Open the live stream on YouTube</Text>
-              <Text style={styles.webVideoFallbackCopy}>
-                The web app hands this experience off to YouTube so the live page stays reliable on Cloudflare Pages.
-              </Text>
-            </View>
-          ) : (
-            <NativeWebView
-              source={{ uri: liveData.embedUrl }}
-              style={styles.video}
-              allowsFullscreenVideo
-              startInLoadingState
+          <View style={styles.nextSteps}>
+            <NextStepCard
+              theme={theme}
+              icon="hand-holding-heart"
+              title="Partner With Us"
+              copy="Your generosity moves the mission of Jesus forward."
+              onPress={() => router.push('/generosity')}
             />
-          )}
+          </View>
+
+          <PageSlogan inverse />
         </View>
+      </ScrollView>
+    </ScreenShell>
+  );
+}
 
-        <TouchableOpacity
-          style={styles.youtubeButton}
-          onPress={() => void handleOpenUrl(liveData.watchUrl)}
-          activeOpacity={0.88}
-        >
-          <AppIcon name="youtube" size={18} color={BRAND_RED} />
-          <Text style={styles.youtubeButtonText}>Open on YouTube</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.youtubeHelper}>
-          Prefer YouTube? Open the live stream there in one tap.
-        </Text>
-
-        <TouchableOpacity style={styles.shareButton} onPress={() => void handleShare()} activeOpacity={0.88}>
-          <AppIcon name="share-nodes" size={18} color="#FFFFFF" />
-          <Text style={styles.shareButtonText}>Share</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.nextSteps}>
-        <NextStepCard
-          icon="hand-holding-heart"
-          title="Partner With Us"
-          copy="Your generosity moves the mission of Jesus forward."
-          onPress={() => router.push('/generosity')}
-        />
-        <NextStepCard
-          icon="home"
-          title="Plan a Visit"
-          copy="We would love to welcome you this Sunday."
-          onPress={() => router.push('/visit')}
-        />
-      </View>
-    </ScrollView>
+function ScreenShell({
+  theme,
+  children,
+}: {
+  theme: HomeStyle;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.screen}>
+      <LinearGradient colors={theme.pageGradient} style={StyleSheet.absoluteFill} />
+      <BackgroundDecor theme={theme} />
+      {children}
+    </View>
   );
 }
 
 function NextStepCard({
+  theme,
   icon,
   title,
   copy,
   onPress,
 }: {
+  theme: HomeStyle;
   icon: AppIconName;
   title: string;
   copy: string;
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.nextCard} onPress={onPress} activeOpacity={0.9}>
-      <AppIcon name={icon} size={28} color={BRAND_RED} />
-      <Text style={styles.nextCardTitle}>{title}</Text>
-      <Text style={styles.nextCardCopy}>{copy}</Text>
+    <TouchableOpacity
+      style={[
+        styles.nextCard,
+        {
+          backgroundColor: theme.cardAlt,
+          borderColor: theme.borderStrong,
+          shadowColor: theme.shadow,
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      <View
+        style={[
+          styles.nextCardIcon,
+          {
+            backgroundColor: theme.accentSoft,
+            borderColor: theme.borderStrong,
+          },
+        ]}
+      >
+        <AppIcon name={icon} size={24} color={theme.accent} />
+      </View>
+      <Text style={[styles.nextCardTitle, { color: theme.textPrimary }]}>{title}</Text>
+      <Text style={[styles.nextCardCopy, { color: theme.textSecondary }]}>{copy}</Text>
     </TouchableOpacity>
+  );
+}
+
+function ActionCard({
+  theme,
+  icon,
+  label,
+  active,
+  onPress,
+}: {
+  theme: HomeStyle;
+  icon: AppIconName;
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={(state) => {
+        const isHovered = 'hovered' in state && Boolean((state as { hovered?: boolean }).hovered);
+        const isActive = active || isHovered || state.pressed;
+
+        return [
+          styles.actionCard,
+          {
+            backgroundColor: theme.cardAlt,
+            borderColor: isActive ? theme.accent : theme.borderStrong,
+            shadowColor: theme.shadow,
+          },
+          isHovered ? styles.actionCardHover : null,
+          state.pressed ? styles.actionCardPressed : null,
+        ];
+      }}
+    >
+      <AppIcon name={icon} size={16} color={theme.accent} />
+      <Text style={[styles.actionCardLabel, { color: theme.textPrimary }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function StateCard({
+  theme,
+  children,
+}: {
+  theme: HomeStyle;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      style={[
+        styles.stateCard,
+        {
+          backgroundColor: theme.card,
+          borderColor: theme.borderStrong,
+          shadowColor: theme.shadow,
+        },
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+function BackgroundDecor({ theme }: { theme: HomeStyle }) {
+  return (
+    <>
+      <View style={[styles.orbTop, { backgroundColor: theme.orbTop }]} />
+      <View style={[styles.orbMiddle, { backgroundColor: theme.orbMiddle }]} />
+      <View style={[styles.orbBottom, { backgroundColor: theme.orbBottom }]} />
+    </>
   );
 }
 
@@ -194,9 +366,12 @@ async function handleOpenUrl(url: string) {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#07111F',
+  },
   container: {
     paddingBottom: 48,
-    backgroundColor: '#FFFFFF',
   },
   hero: {
     overflow: 'hidden',
@@ -205,6 +380,11 @@ const styles = StyleSheet.create({
     paddingTop: 42,
     paddingBottom: 46,
     alignItems: 'center',
+  },
+  contentShell: {
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    gap: 18,
   },
   heroGlowLeft: {
     position: 'absolute',
@@ -230,56 +410,37 @@ const styles = StyleSheet.create({
     letterSpacing: 2.2,
     textTransform: 'uppercase',
     color: '#F87171',
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'center',
   },
-  heroTitle: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 40,
-    lineHeight: 46,
-    color: '#FFFFFF',
+  countdownText: {
+    marginTop: 4,
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 20,
+    lineHeight: 28,
+    color: '#F87171',
     textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  heroAccent: {
-    color: BRAND_RED,
-  },
-  heroCopy: {
-    marginTop: 18,
-    maxWidth: 340,
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 16,
-    lineHeight: 26,
-    color: '#E5E7EB',
-    textAlign: 'center',
-  },
-  heroButton: {
-    marginTop: 24,
-    borderRadius: 18,
-    backgroundColor: BRAND_RED,
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-  },
-  heroButtonText: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 16,
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
   },
   playerSection: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
+    borderRadius: 30,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 20,
     alignItems: 'center',
+    overflow: 'hidden',
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
   },
   playerGlow: {
     position: 'absolute',
-    top: 70,
+    top: 46,
     alignSelf: 'center',
     width: 320,
     height: 180,
     borderRadius: 160,
-    backgroundColor: 'rgba(179,40,45,0.1)',
   },
   playerFrame: {
     width: '100%',
@@ -287,6 +448,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     overflow: 'hidden',
     aspectRatio: 16 / 9,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 20,
@@ -307,27 +469,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  badgeLive: {
-    backgroundColor: 'rgba(179,40,45,0.92)',
-  },
-  badgeOffline: {
-    backgroundColor: 'rgba(55,65,81,0.92)',
-  },
   statusDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
   },
   dotLive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F05B69',
   },
   dotOffline: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: '#C7D2E2',
   },
   statusText: {
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 12,
-    color: '#FFFFFF',
   },
   video: {
     flex: 1,
@@ -335,7 +490,6 @@ const styles = StyleSheet.create({
   },
   webVideoFallback: {
     flex: 1,
-    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
@@ -344,7 +498,6 @@ const styles = StyleSheet.create({
   webVideoFallbackTitle: {
     fontFamily: 'Montserrat-Bold',
     fontSize: 20,
-    color: '#FFFFFF',
     textAlign: 'center',
   },
   webVideoFallbackCopy: {
@@ -352,78 +505,68 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-Regular',
     fontSize: 14,
     lineHeight: 22,
-    color: '#CBD5E1',
     textAlign: 'center',
   },
-  youtubeButton: {
-    marginTop: 20,
-    flexDirection: 'row',
+  actionRow: {
+    width: '100%',
+    marginTop: 18,
     alignItems: 'center',
-    gap: 10,
-    borderRadius: 18,
+  },
+  actionCard: {
+    minWidth: 132,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 18,
-    paddingVertical: 13,
-  },
-  youtubeButtonText: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 15,
-    color: INK,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  youtubeHelper: {
-    marginTop: 10,
-    fontFamily: 'Montserrat-Regular',
-    fontSize: 14,
-    lineHeight: 21,
-    color: MUTED,
-    textAlign: 'center',
-  },
-  shareButton: {
-    marginTop: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    borderRadius: 18,
-    backgroundColor: BRAND_RED,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    justifyContent: 'center',
+    gap: 8,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
-  shareButtonText: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 15,
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+  actionCardHover: {
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 8,
+  },
+  actionCardPressed: {
+    opacity: 0.96,
+  },
+  actionCardLabel: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 16,
   },
   nextSteps: {
-    paddingHorizontal: 20,
-    paddingTop: 34,
     gap: 14,
   },
   nextCard: {
-    borderRadius: 28,
-    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     paddingHorizontal: 22,
     paddingVertical: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.12,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    elevation: 3,
+  },
+  nextCardIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   nextCardTitle: {
     marginTop: 14,
     fontFamily: 'Montserrat-Bold',
     fontSize: 24,
     lineHeight: 30,
-    color: INK,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
@@ -432,7 +575,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-Regular',
     fontSize: 15,
     lineHeight: 23,
-    color: MUTED,
     textAlign: 'center',
   },
   stateWrap: {
@@ -440,19 +582,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#FFFFFF',
+  },
+  stateCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 30,
+    borderWidth: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
     gap: 10,
+    alignItems: 'center',
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
   },
   stateTitle: {
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 18,
-    color: INK,
   },
   stateText: {
     fontFamily: 'Montserrat-Regular',
     fontSize: 14,
     lineHeight: 21,
-    color: MUTED,
     textAlign: 'center',
+  },
+  orbTop: {
+    position: 'absolute',
+    top: 78,
+    left: -52,
+    width: 212,
+    height: 212,
+    borderRadius: 106,
+  },
+  orbMiddle: {
+    position: 'absolute',
+    top: 318,
+    right: -64,
+    width: 224,
+    height: 224,
+    borderRadius: 112,
+  },
+  orbBottom: {
+    position: 'absolute',
+    bottom: 92,
+    left: 42,
+    width: 188,
+    height: 188,
+    borderRadius: 94,
   },
 });

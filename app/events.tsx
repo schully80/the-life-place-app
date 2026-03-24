@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { EventItem, fetchEvents } from '~/lib/contentApi';
+import PageSlogan from '~/components/PageSlogan';
 
 export default function Events() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -73,6 +74,8 @@ export default function Events() {
           {event.description ? <Text style={styles.copy}>{event.description}</Text> : null}
         </View>
       ))}
+
+      <PageSlogan />
     </ScrollView>
   );
 }

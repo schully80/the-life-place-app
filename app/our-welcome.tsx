@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useBootstrap } from '~/hooks/useBootstrap';
+import PageSlogan from '~/components/PageSlogan';
 
 const BRAND_RED = '#B3282D';
 const INK = '#1F2937';
@@ -65,6 +66,8 @@ export default function OurWelcome() {
             Seeing <Text style={styles.copyEmphasis}>Jesus</Text> changes everything.
           </Text>
         </View>
+
+        <PageSlogan />
       </ScrollView>
     </View>
   );

@@ -2,6 +2,7 @@ import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import BackButton from '../../components/BackButton';
 import { useBootstrap } from '~/hooks/useBootstrap';
+import PageSlogan from '~/components/PageSlogan';
 
 const IMAGES: Record<string, any> = {
   'bring-them-to-jesus': require('../../assets/min-bring-them-to-jesus.jpg'),
@@ -61,6 +62,8 @@ export default function MinistryDetail() {
               {paragraph}
             </Text>
           ))}
+
+          <PageSlogan />
         </ScrollView>
       )}
     </>

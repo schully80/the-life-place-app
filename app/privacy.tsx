@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Stack } from 'expo-router';
 import { useBootstrap } from '~/hooks/useBootstrap';
-import { toAbsoluteSiteUrl } from '~/lib/contentApi';
+import { getCanonicalContactEmail, toAbsoluteSiteUrl } from '~/lib/contentApi';
+import { openExternalUrl } from '~/lib/externalLinks';
 import AppIcon, { AppIconName } from '~/components/AppIcon';
+import PageSlogan from '~/components/PageSlogan';
 
 const BRAND = '#B3282D';
 const INK = '#111827';
@@ -12,13 +14,7 @@ const MUTED = '#6B7280';
 export default function Privacy() {
   const { data } = useBootstrap();
   const privacyUrl = toAbsoluteSiteUrl(data?.links.privacyPath || '/privacy-policy/');
-  const privacyEmail = data?.contact.email || 'hello@thelifeplace.org';
-
-  const openUrl = async (url: string) => {
-    const ok = await Linking.canOpenURL(url);
-    if (!ok) return Alert.alert('Unable to open link');
-    return Linking.openURL(url);
-  };
+  const privacyEmail = getCanonicalContactEmail(data?.contact.email);
 
   return (
     <>
@@ -41,12 +37,17 @@ export default function Privacy() {
           </Section>
 
           <Section title="Contact us">
-            <P>Email: {privacyEmail}</P>
+            <P>Email: <Text style={styles.inlineLink}>{privacyEmail}</Text></P>
             <Row>
-              <Button icon="mail" label="Email privacy" onPress={() => openUrl(`mailto:${privacyEmail}`)} />
-              <Button icon="globe" label="Website policy" onPress={() => openUrl(privacyUrl)} />
+              <Button
+                icon="globe"
+                label="Website policy"
+                onPress={() => void openExternalUrl(privacyUrl)}
+              />
             </Row>
           </Section>
+
+          <PageSlogan />
         </ScrollView>
       </View>
     </>
@@ -86,6 +87,7 @@ const styles = StyleSheet.create({
   meta: { marginTop: 4, color: MUTED, fontFamily: 'Montserrat-Regular', fontSize: 12 },
   h2: { fontFamily: 'Montserrat-SemiBold', fontSize: 16, color: INK },
   p: { fontFamily: 'Montserrat-Regular', fontSize: 14, color: INK, lineHeight: 21 },
+  inlineLink: { fontFamily: 'Montserrat-SemiBold', fontSize: 14, color: BRAND },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',

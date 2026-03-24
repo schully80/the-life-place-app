@@ -1,6 +1,7 @@
 import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useBootstrap } from '~/hooks/useBootstrap';
+import PageSlogan from '~/components/PageSlogan';
 
 const IMAGES: Record<string, any> = {
   'bring-them-to-jesus': require('../../assets/min-bring-them-to-jesus.jpg'),
@@ -69,6 +70,8 @@ export default function MinistriesIndex() {
               </TouchableOpacity>
             ))}
           </View>
+
+          <PageSlogan />
         </ScrollView>
       )}
     </>

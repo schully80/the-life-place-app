@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { fetchMessages, getMessageWatchUrl, MessageItem } from '~/lib/contentApi';
 import { useBootstrap } from '~/hooks/useBootstrap';
+import PageSlogan from '~/components/PageSlogan';
 
 export default function Messages() {
   const { data: bootstrap, loading: bootstrapLoading, error: bootstrapError } = useBootstrap();
@@ -121,6 +122,7 @@ export default function Messages() {
           <Text style={styles.stateText}>No messages are available yet.</Text>
         </View>
       }
+      ListFooterComponent={<PageSlogan />}
     />
   );
 }

@@ -17,11 +17,15 @@ export type Ministry = {
 export type Devotional = {
   id: string;
   title: string;
-  scripture: string;
+  scripture?: string;
   body: string[];
   prayer?: string;
   action?: string;
   reference?: string;
+  sourceType?: 'manual' | 'blog';
+  sourceUrl?: string;
+  publishedAt?: string;
+  categories?: string[];
 };
 
 export type MessageItem = {
@@ -164,6 +168,49 @@ export type BootstrapPayload = {
   devotionals: Devotional[];
 };
 
+const DEFAULT_WHATSAPP_NUMBER = '27765639460';
+const DEFAULT_WHATSAPP_MESSAGE = "Hi The Life Place, I'd love to get in touch.";
+const DEFAULT_WHATSAPP_URL = `https://wa.me/${DEFAULT_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  DEFAULT_WHATSAPP_MESSAGE
+)}`;
+const DEFAULT_WHATSAPP_APP_URL = `whatsapp://send?phone=${DEFAULT_WHATSAPP_NUMBER}&text=${encodeURIComponent(
+  DEFAULT_WHATSAPP_MESSAGE
+)}`;
+const DEFAULT_CONTACT_EMAIL = 'hello@thelifeplace.org';
+const DEFAULT_PRIMARY_SERVICE = {
+  id: 'sunday-service',
+  day: 'Sunday',
+  label: 'Sunday 9:00-11:00 AM SAST',
+  startTime: '09:00',
+  endTime: '11:00',
+  timezone: 'Africa/Johannesburg',
+  description: 'Join us for worship, prayer, and community every Sunday morning.',
+} as const;
+const DEFAULT_LOCATION_ADDRESS = {
+  line1: '51 Villa Monte Catini, 1 Elm Avenue',
+  line2: 'Craigavon AH, 2191',
+  line3: 'Sandton',
+  line4: 'South Africa',
+} as const;
+const DEFAULT_LOCATION_VENUE = 'The Life Place';
+const DEFAULT_LOCATION_FULL_ADDRESS = Object.values(DEFAULT_LOCATION_ADDRESS).join(', ');
+const DEFAULT_GOOGLE_MAPS_URL = `https://www.google.com/maps?q=${encodeURIComponent(
+  DEFAULT_LOCATION_FULL_ADDRESS
+)}`;
+const DEFAULT_APPLE_MAPS_URL = `https://maps.apple.com/?q=${encodeURIComponent(
+  DEFAULT_LOCATION_FULL_ADDRESS
+)}`;
+const DEFAULT_WAZE_URL = `https://www.waze.com/ul?q=${encodeURIComponent(
+  DEFAULT_LOCATION_FULL_ADDRESS
+)}&navigate=yes`;
+const DEFAULT_SOCIALS = {
+  youtube: 'https://youtube.com/@thelifeplacesa',
+  instagram: 'https://instagram.com/thelifeplacesa',
+  facebook: 'https://facebook.com/thelifeplacesa',
+  spotify: 'https://open.spotify.com/show/31hbtgq5cvmqr4tyzs2faygvrzaa?si=61b073370e034f21',
+  applePodcasts: 'https://podcasts.apple.com/us/podcast/the-life-place/id1816955719',
+} as const;
+
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '');
 }
@@ -243,8 +290,145 @@ export function fetchBlogFeed() {
   return fetchJson<{ items: BlogItem[] }>('/api/blog-feed.json');
 }
 
+function decodeHtmlEntities(value: string) {
+  return value
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+function stripHtml(value: string) {
+  return decodeHtmlEntities(value)
+    .replace(/<br\s*\/?>/gi, '\n\n')
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .trim();
+}
+
+function trimSentence(value: string, maxLength: number) {
+  if (value.length <= maxLength) return value;
+  const sliced = value.slice(0, maxLength);
+  const lastSpace = sliced.lastIndexOf(' ');
+  const safe = lastSpace > 40 ? sliced.slice(0, lastSpace) : sliced;
+  return `${safe.trimEnd()}…`;
+}
+
+function buildDevotionalBody(excerpt?: string) {
+  const plainText = stripHtml(excerpt || '');
+  if (!plainText) return [];
+
+  const paragraphSource = plainText
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (paragraphSource.length > 1) {
+    return paragraphSource.slice(0, 2).map((part) => trimSentence(part, 240));
+  }
+
+  const sentences = plainText
+    .match(/[^.!?]+[.!?]?/g)
+    ?.map((sentence) => sentence.trim())
+    .filter(Boolean) || [plainText];
+
+  const firstParagraph = trimSentence(sentences.slice(0, 2).join(' '), 240);
+  const secondParagraphSource = sentences.slice(2).join(' ');
+
+  if (!secondParagraphSource) {
+    return [firstParagraph];
+  }
+
+  return [firstParagraph, trimSentence(secondParagraphSource, 220)];
+}
+
+export function deriveDevotionalsFromBlogFeed(items: BlogItem[]): Devotional[] {
+  return items.flatMap((item, index) => {
+      const body = buildDevotionalBody(item.excerpt);
+      if (!item.title || !item.link || body.length === 0) return [];
+
+      return [{
+        id: slugify(item.title) || `blog-devotional-${index + 1}`,
+        title: item.title,
+        body,
+        sourceType: 'blog' as const,
+        sourceUrl: item.link,
+        publishedAt: item.date,
+        categories: item.categories || [],
+      }];
+    });
+}
+
 export function getMessageWatchUrl(message: MessageItem) {
   if (message.videoUrl) return message.videoUrl;
   if (message.youtubeId) return `https://www.youtube.com/watch?v=${message.youtubeId}`;
   return null;
+}
+
+export function getCanonicalWhatsAppUrl(url?: string) {
+  if (!url) return DEFAULT_WHATSAPP_URL;
+  if (/X{3,}/i.test(url)) return DEFAULT_WHATSAPP_URL;
+  return url;
+}
+
+export function getCanonicalContactEmail(email?: string) {
+  if (!email) return DEFAULT_CONTACT_EMAIL;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return DEFAULT_CONTACT_EMAIL;
+  return email;
+}
+
+export function getCanonicalSocials(socials?: Record<string, string>) {
+  return {
+    ...DEFAULT_SOCIALS,
+    ...(socials || {}),
+  };
+}
+
+export function getCanonicalVisitLocation(location?: BootstrapPayload['location']) {
+  return {
+    venue: location?.venue || DEFAULT_LOCATION_VENUE,
+    fullAddress: location?.fullAddress || DEFAULT_LOCATION_FULL_ADDRESS,
+    address: {
+      line1: location?.address?.line1 || DEFAULT_LOCATION_ADDRESS.line1,
+      line2: location?.address?.line2 || DEFAULT_LOCATION_ADDRESS.line2,
+      line3: location?.address?.line3 || DEFAULT_LOCATION_ADDRESS.line3,
+      line4: location?.address?.line4 || DEFAULT_LOCATION_ADDRESS.line4,
+    },
+    mapsQueryUrl: location?.mapsQueryUrl || DEFAULT_GOOGLE_MAPS_URL,
+    appleMapsUrl: location?.appleMapsUrl || DEFAULT_APPLE_MAPS_URL,
+    wazeUrl: location?.wazeUrl || DEFAULT_WAZE_URL,
+  };
+}
+
+export function getCanonicalPrimaryService(
+  service?: BootstrapPayload['schedule']['services'][number]
+) {
+  return {
+    ...DEFAULT_PRIMARY_SERVICE,
+    ...(service || {}),
+  };
+}
+
+export function getWhatsAppAppUrl(url?: string) {
+  const canonicalUrl = getCanonicalWhatsAppUrl(url);
+  const match = canonicalUrl.match(/wa\.me\/([^?]+)(?:\?text=(.*))?/i);
+  if (!match) return DEFAULT_WHATSAPP_APP_URL;
+
+  const [, phone, text = ''] = match;
+  return `whatsapp://send?phone=${phone}&text=${text}`;
 }

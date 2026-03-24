@@ -11,6 +11,7 @@ import {
 import { BlogItem, fetchBlogFeed } from '~/lib/contentApi';
 import { useBootstrap } from '~/hooks/useBootstrap';
 import AppIcon from '~/components/AppIcon';
+import PageSlogan from '~/components/PageSlogan';
 
 const BRAND_RED = '#B3282D';
 const INK = '#111827';
@@ -179,6 +180,8 @@ export default function Blog() {
           <Text style={styles.secondaryButtonText}>Open Substack</Text>
         </TouchableOpacity>
       </View>
+
+      <PageSlogan />
     </ScrollView>
   );
 }

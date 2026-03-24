@@ -3,7 +3,10 @@ import type { BlogItem, BootstrapPayload, EventItem, MessageItem } from '~/lib/c
 const SITE_URL = 'https://thelifeplace.org';
 const CONTACT_EMAIL = 'hello@thelifeplace.org';
 const WHATSAPP_URL = 'https://wa.me/27765639460?text=Hi%20The%20Life%20Place%2C%20I%27d%20love%20to%20get%20in%20touch.';
-const MAPS_APP_URL = 'https://maps.app.goo.gl/kWtzKtuyASu3qRxo7';
+const VISIT_ADDRESS = '51 Villa Monte Catini, 1 Elm Avenue, Craigavon AH, 2191, Sandton, South Africa';
+const GOOGLE_MAPS_URL = `https://www.google.com/maps?q=${encodeURIComponent(VISIT_ADDRESS)}`;
+const APPLE_MAPS_URL = `https://maps.apple.com/?q=${encodeURIComponent(VISIT_ADDRESS)}`;
+const WAZE_URL = `https://www.waze.com/ul?q=${encodeURIComponent(VISIT_ADDRESS)}&navigate=yes`;
 const YOUTUBE_CHANNEL_ID = 'UC2f4d_FFU4HiTT_DiPhZwvw';
 const YOUTUBE_CHANNEL_URL = `https://www.youtube.com/channel/${YOUTUBE_CHANNEL_ID}`;
 const YOUTUBE_CHANNEL_LIVE_URL = `${YOUTUBE_CHANNEL_URL}/live`;
@@ -49,16 +52,16 @@ export const FALLBACK_BOOTSTRAP: BootstrapPayload = {
   },
   location: {
     venue: 'The Life Place',
-    fullAddress: '1251 Villa Monte Catini, 1 Elm Avenue, Craigavon AH, Sandton, 2191',
+    fullAddress: VISIT_ADDRESS,
     address: {
-      line1: '1251 Villa Monte Catini',
-      line2: '1 Elm Avenue',
-      line3: 'Craigavon AH, Sandton',
-      line4: '2191, South Africa',
+      line1: '51 Villa Monte Catini, 1 Elm Avenue',
+      line2: 'Craigavon AH, 2191',
+      line3: 'Sandton',
+      line4: 'South Africa',
     },
-    mapsQueryUrl: MAPS_APP_URL,
-    appleMapsUrl: 'https://maps.apple.com/?q=1251%20Villa%20Monte%20Catini%201%20Elm%20Avenue%20Craigavon%20AH%20Sandton',
-    wazeUrl: 'https://waze.com/ul?ll=-26.0375,28.0168&navigate=yes',
+    mapsQueryUrl: GOOGLE_MAPS_URL,
+    appleMapsUrl: APPLE_MAPS_URL,
+    wazeUrl: WAZE_URL,
   },
   schedule: {
     timezone: 'Africa/Johannesburg',
@@ -66,10 +69,10 @@ export const FALLBACK_BOOTSTRAP: BootstrapPayload = {
       {
         id: 'sunday-service',
         day: 'Sunday',
-        label: 'Sunday 9:00-11:00',
+        label: 'Sunday 9:00-11:00 AM SAST',
         startTime: '09:00',
         endTime: '11:00',
-        description: 'Join us for worship, prayer, community, and the good news of Jesus.',
+        description: 'Join us for worship, prayer, and community every Sunday morning.',
       },
     ],
   },

@@ -1,26 +1,35 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
   Image,
-  ImageBackground,
   Linking,
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchMessages, getMessageWatchUrl, MessageItem } from '~/lib/contentApi';
-import { useBootstrap } from '~/hooks/useBootstrap';
 import AppIcon, { AppIconName } from '~/components/AppIcon';
+import PageSlogan from '~/components/PageSlogan';
+import { useBootstrap } from '~/hooks/useBootstrap';
+import {
+  getCanonicalSocials,
+  getCanonicalWhatsAppUrl,
+  getWhatsAppAppUrl,
+} from '~/lib/contentApi';
+import { openExternalUrl } from '~/lib/externalLinks';
+import { HOME_STYLES, HomeStyle } from '~/lib/homeDesignStyles';
 
-const PAGE_PADDING = 24;
-const CIRCLE = 56;
+const PAGE_PADDING = 20;
+const SOCIAL_ICON_SIZE = 54;
+const SECTION_HEADER_TITLE_SIZE = 30;
+const LOGO_IMAGE = require('../../assets/logo.png');
 
 type SocialItem = {
   label: string;
@@ -28,376 +37,881 @@ type SocialItem = {
   icon: AppIconName;
 };
 
-export default function Home() {
-  const insets = useSafeAreaInsets();
-  const { data: bootstrap, loading: bootstrapLoading } = useBootstrap();
-  const [messages, setMessages] = useState<MessageItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const messagesEnabled = bootstrap?.features.messagesEnabled ?? false;
+type QuickActionItem = {
+  id: string;
+  title: string;
+  description: string;
+  icon: AppIconName;
+  onPress: () => void;
+};
 
+type CardSurfaceProps = {
+  children: ReactNode;
+  theme: HomeStyle;
+  style?: StyleProp<ViewStyle>;
+  backgroundColor: string;
+  borderColor: string;
+  borderRadius: number;
+  shadowColor?: string;
+  onPress?: () => void;
+  active?: boolean;
+  disableInteractiveOutline?: boolean;
+};
+
+let lastActiveHomeCardId: string | null = null;
+
+export default function Home() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { data: bootstrap } = useBootstrap();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [activeCardId, setActiveCardId] = useState<string | null>(lastActiveHomeCardId);
+  const activeStyle = HOME_STYLES.find((style) => style.id === 'glass') ?? HOME_STYLES[0];
+
+  const missionSupport =
+    'Every time we meet we see how true, good, beautiful, and kind Jesus is.';
+  const canonicalSocials = getCanonicalSocials(bootstrap?.socials);
   const socialLinks = useMemo<SocialItem[]>(
     () => {
-      const candidates: Array<SocialItem | null> = [
-        bootstrap?.socials.facebook
-          ? { label: 'Facebook', url: bootstrap.socials.facebook, icon: 'facebook-f' }
+      const items: Array<SocialItem | null> = [
+        canonicalSocials.facebook
+          ? { label: 'Facebook', url: canonicalSocials.facebook, icon: 'facebook-f' }
           : null,
-        bootstrap?.socials.instagram
-          ? { label: 'Instagram', url: bootstrap.socials.instagram, icon: 'instagram' }
+        canonicalSocials.instagram
+          ? { label: 'Instagram', url: canonicalSocials.instagram, icon: 'instagram' }
           : null,
-        bootstrap?.socials.youtube
-          ? { label: 'YouTube', url: bootstrap.socials.youtube, icon: 'youtube' }
+        canonicalSocials.youtube
+          ? { label: 'YouTube', url: canonicalSocials.youtube, icon: 'youtube' }
           : null,
-        bootstrap?.socials.spotify
-          ? { label: 'Spotify', url: bootstrap.socials.spotify, icon: 'spotify' }
+        canonicalSocials.spotify
+          ? { label: 'Spotify', url: canonicalSocials.spotify, icon: 'spotify' }
           : null,
-        bootstrap?.socials.applePodcasts
-          ? { label: 'Apple Podcasts', url: bootstrap.socials.applePodcasts, icon: 'apple-podcasts' }
+        canonicalSocials.applePodcasts
+          ? { label: 'Apple Podcasts', url: canonicalSocials.applePodcasts, icon: 'apple-podcasts' }
           : null,
       ];
 
-      return candidates.filter((item): item is SocialItem => item !== null);
+      return items.filter((item): item is SocialItem => item !== null);
     },
-    [bootstrap]
+    [canonicalSocials]
   );
 
-  useEffect(() => {
-    if (bootstrapLoading) {
-      return;
-    }
+  const quickActions: QuickActionItem[] = [
+    {
+      id: 'visit',
+      title: 'Plan a Visit',
+      description: 'Directions, service time, and what to expect on Sunday.',
+      icon: 'location-dot',
+      onPress: () => router.push('/visit'),
+    },
+    {
+      id: 'prayer',
+      title: 'Prayer',
+      description: 'Share a need and let us stand with you.',
+      icon: 'hands-praying',
+      onPress: () => router.push('/prayer'),
+    },
+    {
+      id: 'give',
+      title: 'Give',
+      description: 'Give quickly and securely from the app.',
+      icon: 'hand-holding-heart',
+      onPress: () => router.push('/generosity'),
+    },
+    {
+      id: 'devotionals',
+      title: 'Devotionals',
+      description: 'Read reflections shaped around Scripture and grace.',
+      icon: 'book-open',
+      onPress: () => router.push('/devotionals'),
+    },
+  ];
 
-    if (!messagesEnabled) {
-      setMessages([]);
-      setLoading(false);
-      return;
-    }
+  const setHomeActiveCard = (cardId: string) => {
+    lastActiveHomeCardId = cardId;
+    setActiveCardId(cardId);
+  };
 
-    let active = true;
+  const openUrl = async (url: string, label: string) => {
+    await openExternalUrl(url, {
+      label,
+      failureTitle: 'Could not open link',
+      failureMessage: `${label} is not supported on this device.`,
+    });
+  };
 
-    (async () => {
-      try {
-        const items = await fetchMessages();
-        if (!active) return;
-        setMessages(items.slice(0, 4));
-      } catch {
-        if (!active) return;
-        setMessages([]);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
+  const openWhatsAppUrl = async (url?: string) => {
+    const webUrl = getCanonicalWhatsAppUrl(url);
+    const appUrl = getWhatsAppAppUrl(url);
 
-    return () => {
-      active = false;
-    };
-  }, [bootstrapLoading, messagesEnabled]);
-
-  const openSocialUrl = async (url: string, label: string) => {
     try {
-      const ok = await Linking.canOpenURL(url);
-      if (!ok) return Alert.alert('Could not open link', `${label} is not supported on this device.`);
-      await Linking.openURL(url);
-      setSheetOpen(false);
+      await Linking.openURL(appUrl);
     } catch {
-      Alert.alert('Something went wrong', 'Please try again.');
+      await openUrl(webUrl, 'WhatsApp');
     }
   };
 
+  const blogUrl = bootstrap?.links.blogUrl || 'https://schulteretyang.substack.com';
+  const blogSubscribeUrl = `${blogUrl.replace(/\/+$/, '')}/subscribe`;
+  const whatsappUrl = getCanonicalWhatsAppUrl(bootstrap?.contact.whatsapp);
+
   return (
-    <ImageBackground
-      source={require('../../assets/sandton-skyline.jpg')}
-      style={styles.bg}
-      resizeMode="cover"
-    >
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
-        <View style={[styles.headerWrap, { paddingTop: insets.top + 10 }]}>
-          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-          <Text style={styles.tagline}>{bootstrap?.site.tagline || 'Come. See. Jesus.'}</Text>
-        </View>
+    <View style={styles.screen}>
+      <LinearGradient colors={activeStyle.pageGradient} style={StyleSheet.absoluteFill} />
+      <BackgroundDecor theme={activeStyle} />
 
-        <View style={styles.body}>
-          <View style={styles.heroCard}>
-            <Text style={styles.eyebrow}>Welcome</Text>
-            <Text style={styles.heroTitle}>Everything you need to stay connected to The Life Place.</Text>
-            <Text style={styles.heroCopy}>
-              Messages, prayer, giving, events, and visit information now come from the same
-              shared source of truth as the site.
-            </Text>
-          </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 110 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <CardSurface
+            theme={activeStyle}
+            style={styles.labCard}
+            backgroundColor={activeStyle.card}
+            borderColor={activeStyle.borderStrong}
+            borderRadius={activeStyle.radiusCard}
+            shadowColor={activeStyle.shadow}
+            disableInteractiveOutline
+          >
+            <Image source={LOGO_IMAGE} style={styles.logoImage} resizeMode="contain" />
+          </CardSurface>
 
-          {messagesEnabled ? (
-            <>
-              <Text style={styles.sectionTitle}>Latest Messages</Text>
-              {loading ? (
-                <View style={styles.stateWrap}>
-                  <ActivityIndicator size="large" color="#B3282D" />
-                  <Text style={styles.stateText}>Loading messages…</Text>
-                </View>
-              ) : messages.length === 0 ? (
-                <View style={styles.stateWrap}>
-                  <AppIcon name="albums" size={20} color="#6B7280" />
-                  <Text style={styles.stateText}>Messages will appear here soon.</Text>
-                </View>
-              ) : (
-                <View style={styles.messageGrid}>
-                  {messages.map((message) => (
-                    <TouchableOpacity
-                      key={message.id}
-                      style={styles.messageCard}
-                      activeOpacity={0.88}
-                      onPress={() => {
-                        const watchUrl = getMessageWatchUrl(message);
-                        if (watchUrl) Linking.openURL(watchUrl);
-                      }}
-                    >
-                      <Image source={{ uri: message.thumbnail }} style={styles.messageImage} resizeMode="cover" />
-                      <Text numberOfLines={2} style={styles.messageTitle}>
-                        {message.title}
-                      </Text>
-                      <Text style={styles.messageMeta}>
-                        {message.preacher} • {new Date(message.date).toLocaleDateString()}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </>
-          ) : null}
+          <HeroCard
+            theme={activeStyle}
+            missionSupport={missionSupport}
+            active={activeCardId === 'what-we-do'}
+            onPress={() => setHomeActiveCard('what-we-do')}
+          />
 
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionList}>
-            <ActionLink href="/devotionals" icon="book-open" label="Devotionals" />
-            <TouchableOpacity
-              style={styles.actionCard}
-              activeOpacity={0.88}
-              onPress={() => setSheetOpen(true)}
+          <CardSurface
+            theme={activeStyle}
+            style={styles.sectionCard}
+            backgroundColor={activeStyle.card}
+            borderColor={activeStyle.borderStrong}
+            borderRadius={activeStyle.radiusCard}
+            shadowColor={activeStyle.shadow}
+          >
+            <View
+              style={[
+                styles.sectionLabelCard,
+                {
+                  backgroundColor: activeStyle.cardAlt,
+                  borderColor: activeStyle.borderStrong,
+                },
+              ]}
             >
-              <AppIcon name="share-nodes" size={26} color="#B3282D" />
-              <Text style={styles.actionLabel}>Follow Us</Text>
-            </TouchableOpacity>
-          </View>
+              <Text style={[styles.eyebrow, { color: activeStyle.accent }]}>Next Steps</Text>
+            </View>
+
+            <View style={styles.actionGrid}>
+              {quickActions.map((item) => (
+                <QuickActionCard
+                  key={item.id}
+                  item={item}
+                  theme={activeStyle}
+                  active={activeCardId === item.id}
+                  onPress={() => {
+                    setHomeActiveCard(item.id);
+                    item.onPress();
+                  }}
+                />
+              ))}
+            </View>
+          </CardSurface>
+
+          <CardSurface
+            theme={activeStyle}
+            style={styles.sectionCard}
+            backgroundColor={activeStyle.card}
+            borderColor={activeStyle.borderStrong}
+            borderRadius={activeStyle.radiusCard}
+            shadowColor={activeStyle.shadow}
+          >
+            <View
+              style={[
+                styles.sectionLabelCard,
+                {
+                  backgroundColor: activeStyle.cardAlt,
+                  borderColor: activeStyle.borderStrong,
+                },
+              ]}
+            >
+              <Text style={[styles.eyebrow, { color: activeStyle.accent }]}>Connect</Text>
+            </View>
+
+            <View style={styles.contactGrid}>
+              <ContactCard
+                icon="mail"
+                label="Subscribe"
+                value="Receive weekly posts on Substack"
+                theme={activeStyle}
+                active={activeCardId === 'subscribe'}
+                onPress={() => {
+                  setHomeActiveCard('subscribe');
+                  void openUrl(blogSubscribeUrl, 'Subscribe');
+                }}
+              />
+              {whatsappUrl ? (
+                <ContactCard
+                  icon="whatsapp"
+                  label="WhatsApp"
+                  value="Start a conversation"
+                  theme={activeStyle}
+                  active={activeCardId === 'whatsapp'}
+                  onPress={() => {
+                    setHomeActiveCard('whatsapp');
+                    void openWhatsAppUrl(whatsappUrl);
+                  }}
+                />
+              ) : null}
+            </View>
+
+            <View style={styles.contactSingleRow}>
+              <ContactCard
+                icon="share-nodes"
+                label="Follow Us"
+                value="Social channels"
+                theme={activeStyle}
+                active={activeCardId === 'follow'}
+                onPress={() => {
+                  setHomeActiveCard('follow');
+                  setSheetOpen(true);
+                }}
+              />
+            </View>
+          </CardSurface>
+
+          <PageSlogan inverse />
         </View>
       </ScrollView>
 
       <Modal visible={sheetOpen} animationType="slide" transparent onRequestClose={() => setSheetOpen(false)}>
         <TouchableWithoutFeedback onPress={() => setSheetOpen(false)}>
-          <View style={styles.backdrop} />
+          <View style={[styles.modalBackdrop, { backgroundColor: activeStyle.backdrop }]} />
         </TouchableWithoutFeedback>
 
-        <View style={styles.sheet}>
-          <View style={styles.grabber} />
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: activeStyle.modalSurface,
+              borderTopColor: activeStyle.border,
+            },
+          ]}
+        >
+          <View style={[styles.sheetHandle, { backgroundColor: activeStyle.borderStrong }]} />
+          <Text style={[styles.sheetTitle, { color: activeStyle.textPrimary }]}>Follow The Life Place</Text>
+          <Text style={[styles.sheetCopy, { color: activeStyle.textSecondary }]}>
+            Stay connected across the church's public channels from one place.
+          </Text>
 
-          <View style={styles.iconGrid}>
+          <View style={styles.socialGrid}>
             {socialLinks.map((item) => (
-              <TouchableOpacity
+              <CardSurface
                 key={item.label}
-                onPress={() => openSocialUrl(item.url, item.label)}
-                activeOpacity={0.9}
-                style={styles.circle}
-                accessibilityRole="button"
-                accessibilityLabel={item.label}
+                theme={activeStyle}
+                style={styles.socialCard}
+                backgroundColor={activeStyle.cardAlt}
+                borderColor={activeStyle.borderStrong}
+                borderRadius={22}
+                onPress={() => {
+                  setSheetOpen(false);
+                  void openUrl(item.url, item.label);
+                }}
               >
-                <AppIcon name={item.icon} size={22} color="#FFFFFF" />
-              </TouchableOpacity>
+                <View
+                  style={[
+                    styles.socialCircle,
+                    {
+                      backgroundColor: activeStyle.accent,
+                    },
+                  ]}
+                >
+                  <AppIcon name={item.icon} size={20} color={activeStyle.textInverse} />
+                </View>
+                <Text style={[styles.socialLabel, { color: activeStyle.textPrimary }]}>{item.label}</Text>
+              </CardSurface>
             ))}
           </View>
 
-          <TouchableOpacity style={styles.closeBtn} onPress={() => setSheetOpen(false)}>
-            <Text style={styles.closeText}>Close</Text>
-          </TouchableOpacity>
+          <Pressable
+            style={[
+              styles.closeButton,
+              {
+                backgroundColor: activeStyle.secondaryButtonBg,
+                borderColor: activeStyle.border,
+              },
+            ]}
+            onPress={() => setSheetOpen(false)}
+          >
+            <Text style={[styles.closeButtonText, { color: activeStyle.secondaryButtonText }]}>Close</Text>
+          </Pressable>
         </View>
       </Modal>
-    </ImageBackground>
+    </View>
   );
 }
 
-function ActionLink({
-  href,
-  icon,
-  label,
+function CardSurface({
+  children,
+  theme,
+  style,
+  backgroundColor,
+  borderColor,
+  borderRadius,
+  shadowColor,
+  onPress,
+  active = false,
+  disableInteractiveOutline = false,
+}: CardSurfaceProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={(state) => {
+        const isHovered = 'hovered' in state && Boolean((state as { hovered?: boolean }).hovered);
+        const isActive = disableInteractiveOutline ? false : active || isHovered || state.pressed;
+
+        return [
+          style,
+          {
+            backgroundColor,
+            borderColor: isActive ? theme.accent : borderColor,
+            borderRadius,
+            shadowColor: shadowColor ?? theme.shadow,
+          },
+          isHovered && !disableInteractiveOutline ? styles.cardHoverOutline : null,
+          state.pressed && !disableInteractiveOutline ? styles.cardPressed : null,
+        ];
+      }}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+function HeroCard({
+  theme,
+  missionSupport,
+  active,
+  onPress,
 }: {
-  href: '/devotionals';
-  icon: AppIconName;
-  label: string;
+  theme: HomeStyle;
+  missionSupport: string;
+  active: boolean;
+  onPress: () => void;
 }) {
   return (
-    <Link href={href} asChild>
-      <TouchableOpacity style={styles.actionCard} activeOpacity={0.88}>
-        <AppIcon name={icon} size={26} color="#B3282D" />
-        <Text style={styles.actionLabel}>{label}</Text>
-      </TouchableOpacity>
-    </Link>
+    <CardSurface
+      theme={theme}
+      active={active}
+      onPress={onPress}
+      style={styles.heroShell}
+      backgroundColor="transparent"
+      borderColor={theme.borderStrong}
+      borderRadius={theme.radiusHero}
+      shadowColor={theme.shadow}
+    >
+      <LinearGradient colors={theme.heroGradient} style={StyleSheet.absoluteFill} />
+
+      <View style={styles.heroCopyColumn}>
+        <View
+          style={[
+            styles.heroKicker,
+            {
+              backgroundColor: theme.accentSoft,
+              borderColor: theme.borderStrong,
+            },
+          ]}
+        >
+          <Text style={[styles.heroKickerText, { color: theme.accent }]}>
+            The Life Place
+          </Text>
+        </View>
+
+        <Text
+          style={[
+            styles.heroTitle,
+            {
+              color: theme.textPrimary,
+              textShadowColor: theme.textPrimary,
+              textAlign: 'center',
+            },
+          ]}
+        >
+          WHAT WE DO
+        </Text>
+
+        <Text
+          style={[
+            styles.heroSubtitle,
+            {
+              color: theme.textSecondary,
+              textAlign: 'center',
+            },
+          ]}
+        >
+          {missionSupport}
+        </Text>
+      </View>
+    </CardSurface>
+  );
+}
+
+function QuickActionCard({
+  item,
+  theme,
+  active,
+  onPress,
+}: {
+  item: QuickActionItem;
+  theme: HomeStyle;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <CardSurface
+      theme={theme}
+      onPress={onPress}
+      active={active}
+      style={[styles.actionCard, styles.actionCardNarrow]}
+      backgroundColor={theme.card}
+      borderColor={theme.borderStrong}
+      borderRadius={theme.radiusCard}
+      shadowColor={theme.shadow}
+    >
+      <View
+        style={[
+          styles.actionIconWrap,
+          {
+            backgroundColor: theme.accentSoft,
+            borderColor: theme.borderStrong,
+          },
+        ]}
+      >
+        <AppIcon name={item.icon} size={22} color={theme.accent} />
+      </View>
+      <Text style={[styles.actionTitle, { color: theme.textPrimary }]}>{item.title}</Text>
+      <Text style={[styles.actionDescription, { color: theme.textSecondary }]}>{item.description}</Text>
+    </CardSurface>
+  );
+}
+
+function ContactCard({
+  icon,
+  label,
+  value,
+  theme,
+  onPress,
+  active = false,
+}: {
+  icon: AppIconName;
+  label: string;
+  value: string;
+  theme: HomeStyle;
+  onPress?: () => void;
+  active?: boolean;
+}) {
+  return (
+    <CardSurface
+      theme={theme}
+      onPress={onPress}
+      active={active}
+      style={styles.contactCard}
+      backgroundColor={theme.cardAlt}
+      borderColor={theme.borderStrong}
+      borderRadius={theme.radiusCard - 8}
+    >
+      <View
+        style={[
+          styles.contactIconWrap,
+          {
+            backgroundColor: theme.accentSoft,
+          },
+        ]}
+      >
+        <AppIcon name={icon} size={20} color={theme.accent} />
+      </View>
+      <Text style={[styles.contactLabel, { color: theme.textPrimary }]}>
+        {label}
+      </Text>
+      <Text
+        style={[styles.contactValue, { color: theme.textSecondary }]}
+        numberOfLines={2}
+      >
+        {value}
+      </Text>
+    </CardSurface>
+  );
+}
+
+function BackgroundDecor({ theme }: { theme: HomeStyle }) {
+  return (
+    <>
+      <View style={[styles.orbLarge, { backgroundColor: theme.orbTop }]} />
+      <View style={[styles.orbMedium, { backgroundColor: theme.orbMiddle }]} />
+      <View style={[styles.orbSmall, { backgroundColor: theme.orbBottom }]} />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  headerWrap: {
-    width: '100%',
+  screen: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    paddingBottom: 16,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
     paddingHorizontal: PAGE_PADDING,
+    gap: 18,
+  },
+  labCard: {
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  logo: { width: 72, height: 72 },
-  tagline: {
-    marginTop: 6,
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  body: { paddingHorizontal: PAGE_PADDING, paddingTop: 20 },
-  heroCard: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 22,
-    padding: 18,
+    justifyContent: 'center',
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    alignItems: 'center',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   eyebrow: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 13,
-    color: '#B3282D',
-    textTransform: 'uppercase',
+    fontSize: 12,
     letterSpacing: 2.2,
-  },
-  heroTitle: {
-    marginTop: 10,
-    maxWidth: 320,
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 30,
-    lineHeight: 34,
-    color: '#111827',
-    textAlign: 'center',
     textTransform: 'uppercase',
   },
-  heroCopy: {
-    marginTop: 10,
-    maxWidth: 320,
-    fontFamily: 'Montserrat-Regular',
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#6B7280',
+  sectionLabelCard: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  welcomeBlockText: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 28,
+    lineHeight: 30,
+    letterSpacing: 3.6,
+    textTransform: 'uppercase',
     textAlign: 'center',
   },
-  sectionTitle: {
-    marginTop: 22,
-    marginBottom: 12,
+  labTitle: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 13,
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 2.2,
+    fontSize: 24,
+    lineHeight: 28,
   },
-  stateWrap: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 18,
-    padding: 20,
-    alignItems: 'center',
-    gap: 8,
-  },
-  stateText: {
+  labSubtitle: {
     fontFamily: 'Montserrat-Regular',
     fontSize: 14,
-    color: '#6B7280',
+    lineHeight: 20,
   },
-  messageGrid: {
-    gap: 12,
+  logoImage: {
+    width: 82,
+    height: 82,
   },
-  messageCard: {
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    borderRadius: 18,
-    padding: 14,
+  styleRail: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  stylePill: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    gap: 3,
   },
-  messageImage: {
-    width: '100%',
-    height: 180,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+  stylePillLabel: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 14,
   },
-  messageTitle: {
-    marginTop: 12,
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 15,
-    color: '#111827',
-  },
-  messageMeta: {
-    marginTop: 6,
+  stylePillMeta: {
     fontFamily: 'Montserrat-Regular',
     fontSize: 12,
-    color: '#6B7280',
+    lineHeight: 16,
   },
-  actionList: {
+  heroShell: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    gap: 20,
+    minHeight: 260,
+    shadowOpacity: 0.12,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 6,
+  },
+  heroCopyColumn: {
+    gap: 20,
+  },
+  heroKicker: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  heroKickerText: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 14,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: SECTION_HEADER_TITLE_SIZE,
+    lineHeight: 34,
+    textTransform: 'uppercase',
+    letterSpacing: -0.4,
+    textShadowOffset: { width: 0.5, height: 0 },
+    textShadowRadius: 0,
+  },
+  heroSubtitle: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 18,
+    lineHeight: 28,
+  },
+  heroStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: 140,
+    padding: 14,
+    borderWidth: 1,
+    gap: 6,
+  },
+  statLabel: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 12,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  heroVisual: {
+    minHeight: 260,
+    padding: 16,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  heroVisualPill: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  heroVisualPillText: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+  },
+  heroQuoteWrap: {
+    gap: 10,
+  },
+  heroQuote: {
+    maxWidth: 280,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 28,
+    lineHeight: 32,
+  },
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 12,
   },
   actionCard: {
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    borderRadius: 18,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    padding: 16,
+    gap: 10,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
-  actionLabel: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 15,
-    color: '#111827',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+  actionCardNarrow: {
+    width: '48%',
+    minHeight: 186,
   },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
+  actionIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  actionTitle: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  actionDescription: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  sectionCard: {
+    borderWidth: 1,
+    padding: 18,
+    gap: 16,
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+  contactGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  contactSingleRow: {
+    alignItems: 'flex-start',
+  },
+  contactCard: {
+    width: '48%',
+    minHeight: 144,
+    padding: 14,
+    borderWidth: 1,
+    gap: 10,
+  },
+  contactIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contactLabel: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 16,
+  },
+  contactValue: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
   sheet: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
+    borderTopWidth: 1,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
+    gap: 12,
   },
-  grabber: {
+  sheetHandle: {
+    width: 48,
+    height: 5,
+    borderRadius: 999,
     alignSelf: 'center',
-    width: 44,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#E5E7EB',
-    marginBottom: 8,
   },
-  iconGrid: {
-    marginTop: 16,
+  sheetTitle: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 22,
+    textAlign: 'center',
+  },
+  sheetCopy: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  socialGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 16,
+    gap: 12,
   },
-  circle: {
-    width: CIRCLE,
-    height: CIRCLE,
-    borderRadius: CIRCLE / 2,
-    backgroundColor: '#000000',
+  socialCard: {
+    width: '47%',
+    borderWidth: 1,
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 10,
+  },
+  socialCircle: {
+    width: SOCIAL_ICON_SIZE,
+    height: SOCIAL_ICON_SIZE,
+    borderRadius: SOCIAL_ICON_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  socialLabel: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 14,
+  },
+  closeButton: {
+    marginTop: 4,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    paddingVertical: 14,
+    alignItems: 'center',
   },
-  closeBtn: {
-    marginTop: 14,
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#F3F4F6',
+  closeButtonText: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 14,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  closeText: { fontFamily: 'Montserrat-Medium', color: '#111827' },
+  cardHoverOutline: {
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 8,
+  },
+  cardPressed: {
+    opacity: 0.96,
+  },
+  orbLarge: {
+    position: 'absolute',
+    top: -110,
+    right: -60,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+  },
+  orbMedium: {
+    position: 'absolute',
+    top: 260,
+    left: -70,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  orbSmall: {
+    position: 'absolute',
+    bottom: 120,
+    right: 10,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+  },
 });

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -9,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 
 const ACCENT_STRONG = '#B3282D';
+const LOGO_IMAGE = require('../assets/logo.png');
 const SPLASH_FADE_START_MS = 1200;
 const SPLASH_TOTAL_MS = 2000;
 const FLASH_DELAY_MS = 550;
@@ -149,8 +151,8 @@ export default function SiteSplash({ onFinish }: SiteSplashProps) {
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={[styles.glow, styles.topGlow]} />
-      <View style={[styles.glow, styles.bottomGlow]} />
+      <Image source={LOGO_IMAGE} resizeMode="contain" style={[styles.logoGlow, styles.topGlow]} />
+      <Image source={LOGO_IMAGE} resizeMode="contain" style={[styles.logoGlow, styles.bottomGlow]} />
 
       <View style={styles.center}>
         <Animated.View
@@ -205,23 +207,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 100,
   },
-  glow: {
+  logoGlow: {
     position: 'absolute',
-    borderRadius: 999,
+    opacity: 0.08,
   },
   topGlow: {
     top: '14%',
     left: '7%',
     width: 260,
     height: 260,
-    backgroundColor: 'rgba(255,183,190,0.22)',
   },
   bottomGlow: {
     right: '2%',
     bottom: '12%',
     width: 320,
     height: 320,
-    backgroundColor: 'rgba(224,74,79,0.14)',
+    opacity: 0.06,
   },
   center: {
     alignItems: 'center',

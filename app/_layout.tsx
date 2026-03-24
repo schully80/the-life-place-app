@@ -38,8 +38,8 @@ export default function RootLayout() {
           headerStyle: { backgroundColor: '#FFFFFF' },
           headerTitleStyle: {
             color: '#111827',
-            fontSize: 17,
-            fontFamily: 'Montserrat-SemiBold',
+            fontSize: 18,
+            fontFamily: 'Montserrat-Bold',
           },
           headerTintColor: '#111827',
           headerShadowVisible: false,
@@ -50,18 +50,17 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
         {/* Other stack routes */}
-        <Stack.Screen name="about" options={{ title: 'About Us' }} />
-        <Stack.Screen name="devotionals" options={{ title: 'Devotionals' }} />
-        <Stack.Screen name="events" options={{ title: 'Events' }} />
-        <Stack.Screen name="live" options={{ title: 'Live' }} />
-        <Stack.Screen name="meet-schulter-jenny" options={{ title: 'Schulter & Genevieve' }} />
-        <Stack.Screen name="blog" options={{ title: 'Our Blog' }} />
-        <Stack.Screen name="messages" options={{ title: 'Messages' }} />
-        <Stack.Screen name="our-welcome" options={{ title: 'Our Welcome' }} />
-        <Stack.Screen name="visit" options={{ title: 'Visit Us' }} />
-        <Stack.Screen name="privacy" options={{ title: 'Privacy Policy' }} />
-        <Stack.Screen name="ministries/index" options={{ title: 'Ministries' }} />
-        <Stack.Screen name="ministries/[slug]" options={{ title: 'Ministry' }} />
+        <Stack.Screen name="about" options={{ title: 'ABOUT US' }} />
+        <Stack.Screen name="devotionals" options={{ title: 'DEVOTIONALS' }} />
+        <Stack.Screen name="events" options={{ title: 'EVENTS' }} />
+        <Stack.Screen name="meet-schulter-jenny" options={{ title: 'SCHULTER & GENEVIEVE' }} />
+        <Stack.Screen name="blog" options={{ title: 'OUR BLOG' }} />
+        <Stack.Screen name="messages" options={{ title: 'MESSAGES' }} />
+        <Stack.Screen name="our-welcome" options={{ title: 'OUR WELCOME' }} />
+        <Stack.Screen name="visit" options={{ title: 'VISIT US' }} />
+        <Stack.Screen name="privacy" options={{ title: 'PRIVACY POLICY' }} />
+        <Stack.Screen name="ministries/index" options={{ title: 'MINISTRIES' }} />
+        <Stack.Screen name="ministries/[slug]" options={{ title: 'MINISTRY' }} />
       </Stack>
 
       {showSiteSplash ? <SiteSplash onFinish={handleSiteSplashFinish} /> : null}

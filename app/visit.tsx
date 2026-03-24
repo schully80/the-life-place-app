@@ -1,37 +1,45 @@
 import { ImageBackground, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useBootstrap } from '~/hooks/useBootstrap';
+import { LinearGradient } from 'expo-linear-gradient';
 import AppIcon, { AppIconName } from '~/components/AppIcon';
+import PageSlogan from '~/components/PageSlogan';
+import { useBootstrap } from '~/hooks/useBootstrap';
+import { getCanonicalPrimaryService, getCanonicalVisitLocation } from '~/lib/contentApi';
+import { HOME_STYLES, type HomeStyle } from '~/lib/homeDesignStyles';
 
-const BRAND_RED = '#B3282D';
-const INK = '#1F2937';
-const MUTED = '#6B7280';
+const IMAGE_SOURCE = require('../assets/wide-strip5.jpg');
+const SECTION_HEADER_TITLE_SIZE = 30;
 
 export default function Visit() {
   const { data, loading, error } = useBootstrap();
+  const theme = HOME_STYLES.find((style) => style.id === 'glass') ?? HOME_STYLES[0];
 
   if (loading) {
     return (
-      <View style={styles.stateWrap}>
-        <Text style={styles.stateText}>Loading visit information…</Text>
-      </View>
+      <ScreenShell theme={theme}>
+        <StateCard theme={theme} title="Loading visit information" body="Pulling in the details for Sunday and directions." />
+      </ScreenShell>
     );
   }
 
   if (error || !data) {
     return (
-      <View style={styles.stateWrap}>
-        <Text style={styles.stateTitle}>Visit info unavailable</Text>
-        <Text style={styles.stateText}>{error || 'Unable to load visit information.'}</Text>
-      </View>
+      <ScreenShell theme={theme}>
+        <StateCard
+          theme={theme}
+          title="Visit info unavailable"
+          body={error || 'Unable to load visit information.'}
+        />
+      </ScreenShell>
     );
   }
 
-  const service = data.schedule.services[0];
+  const service = getCanonicalPrimaryService(data.schedule.services[0]);
+  const location = getCanonicalVisitLocation(data.location);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScreenShell theme={theme}>
       <ImageBackground
-        source={require('../assets/sandton-skyline.jpg')}
+        source={IMAGE_SOURCE}
         resizeMode="cover"
         style={styles.hero}
         imageStyle={styles.heroImage}
@@ -40,91 +48,254 @@ export default function Visit() {
         <View style={styles.heroInner}>
           <Text style={styles.heroTitle}>
             At the heart of everything we believe and do is{'\n'}
-            <Text style={styles.heroJesus}>Jesus</Text> and His finished work.
+            <Text style={[styles.heroJesus, { color: theme.accent }]}>Jesus</Text> and His finished work.
           </Text>
         </View>
       </ImageBackground>
 
-      <View style={styles.headingBlock}>
-        <Text style={styles.heading}>VISIT US</Text>
-      </View>
-
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>
-          When & <Text style={styles.sectionAccent}>Where</Text>
-        </Text>
-
-        <View style={styles.infoStack}>
-          <View style={styles.infoBlock}>
-            <Text style={styles.infoHeading}>Sunday</Text>
-            <Text style={styles.infoTime}>{service.label.replace(/^Sunday\s*/i, '')}</Text>
-            <Text style={styles.infoCopy}>{service.description}</Text>
+      <View style={styles.content}>
+        <View
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.borderStrong,
+              borderRadius: theme.radiusCard,
+              shadowColor: theme.shadow,
+            },
+          ]}
+        >
+          <View style={styles.sectionLabelRow}>
+            <View
+              style={[
+                styles.sectionLabel,
+                {
+                  backgroundColor: theme.cardAlt,
+                  borderColor: theme.borderStrong,
+                },
+              ]}
+            >
+              <Text style={[styles.sectionLabelText, { color: theme.accent }]}>When</Text>
+            </View>
+            <View
+              style={[
+                styles.sectionLabel,
+                {
+                  backgroundColor: theme.cardAlt,
+                  borderColor: theme.borderStrong,
+                },
+              ]}
+            >
+              <Text style={[styles.sectionLabelText, { color: theme.accent }]}>Where</Text>
+            </View>
           </View>
 
-          <View style={styles.infoBlock}>
-            <Text style={styles.infoHeading}>Our Location</Text>
-            <Text style={styles.locationVenue}>{data.location.venue}</Text>
-            <Text style={styles.infoCopy}>{data.location.address.line1}</Text>
-            <Text style={styles.infoCopy}>{data.location.address.line2}</Text>
-            <Text style={styles.infoCopy}>{data.location.address.line3}</Text>
-            <Text style={styles.infoCopy}>{data.location.address.line4}</Text>
-          </View>
+          <View style={styles.infoStack}>
+            <InfoBlock
+              theme={theme}
+              title="Sunday"
+              titleAccent={service.label.replace(/^Sunday\s*/i, '')}
+              copy={service.description}
+            />
 
-          <View style={styles.infoBlock}>
-            <Text style={styles.infoHeading}>First Time Visiting?</Text>
-            <Text style={styles.infoCopy}>
-              We&apos;d love to meet you. Expect a warm welcome, genuine community, and a clear
-              view of Jesus.
-            </Text>
+            <InfoBlock
+              theme={theme}
+              title="Our Location"
+              titleAccent={location.venue}
+              copy={[
+                location.address.line1,
+                location.address.line2,
+                location.address.line3,
+                location.address.line4,
+              ].join('\n')}
+            />
+
+            <InfoBlock
+              theme={theme}
+              title="First Time Visiting?"
+              copy="We’d love to meet you. Expect a warm welcome, genuine community, and a clear view of Jesus."
+            />
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.directionCard,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.borderStrong,
+              borderRadius: theme.radiusCard,
+              shadowColor: theme.shadow,
+            },
+          ]}
+        >
+          <Text style={[styles.directionTitle, { color: theme.textPrimary }]}>Get Directions</Text>
+          <View style={styles.directionButtons}>
+            <DirectionButton
+              theme={theme}
+              icon="google"
+              label="Google Maps"
+              onPress={() => {
+                void Linking.openURL(location.mapsQueryUrl);
+              }}
+            />
+            <DirectionButton
+              theme={theme}
+              icon="apple"
+              label="Apple Maps"
+              onPress={() => {
+                void Linking.openURL(location.appleMapsUrl);
+              }}
+            />
+            <DirectionButton
+              theme={theme}
+              icon="navigate"
+              label="Waze"
+              onPress={() => {
+                void Linking.openURL(location.wazeUrl);
+              }}
+            />
           </View>
         </View>
       </View>
+    </ScreenShell>
+  );
+}
 
-      <View style={styles.directionCard}>
-        <Text style={styles.directionTitle}>Get Directions</Text>
-        <View style={styles.directionButtons}>
-          <DirectionButton
-            icon="google"
-            label="Google Maps"
-            onPress={() => Linking.openURL(data.location.mapsQueryUrl)}
-          />
-          <DirectionButton
-            icon="apple"
-            label="Apple Maps"
-            onPress={() => Linking.openURL(data.location.appleMapsUrl)}
-          />
-          <DirectionButton
-            icon="navigate"
-            label="Waze"
-            onPress={() => Linking.openURL(data.location.wazeUrl)}
-          />
-        </View>
-      </View>
-    </ScrollView>
+function ScreenShell({
+  theme,
+  children,
+}: {
+  theme: HomeStyle;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.screen}>
+      <LinearGradient colors={theme.pageGradient} style={StyleSheet.absoluteFill} />
+      <BackgroundDecor theme={theme} />
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {children}
+        <PageSlogan inverse />
+      </ScrollView>
+    </View>
+  );
+}
+
+function InfoBlock({
+  theme,
+  title,
+  titleAccent,
+  copy,
+}: {
+  theme: HomeStyle;
+  title: string;
+  titleAccent?: string;
+  copy: string;
+}) {
+  return (
+    <View
+      style={[
+        styles.infoBlock,
+        {
+          backgroundColor: theme.cardAlt,
+          borderColor: theme.borderStrong,
+        },
+      ]}
+    >
+      <Text style={[styles.infoHeading, { color: theme.textPrimary }]}>{title}</Text>
+      {titleAccent ? (
+        <Text style={[styles.infoAccent, { color: theme.accent }]}>{titleAccent}</Text>
+      ) : null}
+      <Text style={[styles.infoCopy, { color: theme.textSecondary }]}>{copy}</Text>
+    </View>
   );
 }
 
 function DirectionButton({
+  theme,
   icon,
   label,
   onPress,
 }: {
+  theme: HomeStyle;
   icon: AppIconName;
   label: string;
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.directionButton} onPress={onPress} activeOpacity={0.88}>
-      <AppIcon name={icon} size={20} color={INK} />
-      <Text style={styles.directionButtonText}>{label}</Text>
+    <TouchableOpacity
+      style={[
+        styles.directionButton,
+        {
+          backgroundColor: theme.cardAlt,
+          borderColor: theme.borderStrong,
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.88}
+    >
+      <View
+        style={[
+          styles.directionIconWrap,
+          {
+            backgroundColor: theme.accentSoft,
+            borderColor: theme.borderStrong,
+          },
+        ]}
+      >
+        <AppIcon name={icon} size={18} color={theme.accent} />
+      </View>
+      <Text style={[styles.directionButtonText, { color: theme.textPrimary }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
+function StateCard({
+  theme,
+  title,
+  body,
+}: {
+  theme: HomeStyle;
+  title: string;
+  body: string;
+}) {
+  return (
+    <View style={styles.content}>
+      <View
+        style={[
+          styles.stateCard,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.borderStrong,
+            borderRadius: theme.radiusCard,
+            shadowColor: theme.shadow,
+          },
+        ]}
+      >
+        <Text style={[styles.stateTitle, { color: theme.textPrimary }]}>{title}</Text>
+        <Text style={[styles.stateText, { color: theme.textSecondary }]}>{body}</Text>
+      </View>
+    </View>
+  );
+}
+
+function BackgroundDecor({ theme }: { theme: HomeStyle }) {
+  return (
+    <>
+      <View style={[styles.orbLarge, { backgroundColor: theme.orbTop }]} />
+      <View style={[styles.orbMedium, { backgroundColor: theme.orbMiddle }]} />
+      <View style={[styles.orbSmall, { backgroundColor: theme.orbBottom }]} />
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#07111F',
+  },
   container: {
     paddingBottom: 44,
-    backgroundColor: '#FFFFFF',
   },
   hero: {
     minHeight: 300,
@@ -151,134 +322,150 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'right',
   },
-  heroJesus: {
-    color: BRAND_RED,
-  },
-  headingBlock: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    alignItems: 'center',
-  },
-  heading: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 38,
-    lineHeight: 40,
-    color: INK,
-    letterSpacing: 1,
+  heroJesus: {},
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 52,
+    gap: 28,
   },
   sectionCard: {
-    marginTop: 22,
-    marginHorizontal: 20,
-    borderRadius: 28,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     paddingHorizontal: 20,
-    paddingVertical: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
+    paddingVertical: 22,
+    gap: 18,
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
-  sectionTitle: {
+  sectionLabelRow: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'flex-start',
+  },
+  sectionLabel: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  sectionLabelText: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 30,
-    lineHeight: 34,
-    color: INK,
-    marginBottom: 18,
+    fontSize: 12,
+    letterSpacing: 1.8,
     textTransform: 'uppercase',
   },
-  sectionAccent: {
-    color: BRAND_RED,
-  },
   infoStack: {
-    gap: 18,
+    gap: 14,
   },
   infoBlock: {
-    borderLeftWidth: 4,
-    borderLeftColor: BRAND_RED,
-    paddingLeft: 14,
+    borderWidth: 1,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 6,
   },
   infoHeading: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 20,
-    color: INK,
-    marginBottom: 4,
+    fontSize: 19,
   },
-  infoTime: {
-    fontFamily: 'Montserrat-SemiBold',
-    fontSize: 18,
-    color: MUTED,
-    marginBottom: 6,
-  },
-  locationVenue: {
+  infoAccent: {
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 16,
-    color: MUTED,
-    marginBottom: 6,
   },
   infoCopy: {
     fontFamily: 'Montserrat-Regular',
     fontSize: 15,
     lineHeight: 22,
-    color: MUTED,
   },
   directionCard: {
-    marginTop: 20,
-    marginHorizontal: 20,
-    borderRadius: 28,
-    backgroundColor: '#F9FAFB',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     paddingHorizontal: 18,
     paddingVertical: 20,
+    gap: 14,
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   directionTitle: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 22,
-    color: INK,
+    fontSize: SECTION_HEADER_TITLE_SIZE,
+    lineHeight: 34,
     textAlign: 'center',
-    marginBottom: 14,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 0,
   },
   directionButtons: {
+    alignItems: 'center',
     gap: 10,
   },
   directionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    borderRadius: 18,
+    gap: 12,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(179,40,45,0.22)',
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  directionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   directionButtonText: {
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 15,
-    color: INK,
   },
-  stateWrap: {
-    flex: 1,
+  stateCard: {
+    marginTop: 24,
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#FFFFFF',
-    gap: 8,
+    gap: 10,
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
   stateTitle: {
-    fontFamily: 'Montserrat-SemiBold',
-    fontSize: 18,
-    color: INK,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 22,
+    textAlign: 'center',
   },
   stateText: {
     fontFamily: 'Montserrat-Regular',
     fontSize: 14,
-    color: '#6B7280',
+    lineHeight: 21,
     textAlign: 'center',
+  },
+  orbLarge: {
+    position: 'absolute',
+    top: -110,
+    right: -60,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+  },
+  orbMedium: {
+    position: 'absolute',
+    top: 280,
+    left: -70,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  orbSmall: {
+    position: 'absolute',
+    bottom: 120,
+    right: 10,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
   },
 });

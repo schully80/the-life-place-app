@@ -9,6 +9,7 @@ import {
 import { Link, useRouter } from 'expo-router';
 import { useBootstrap } from '~/hooks/useBootstrap';
 import AppIcon, { AppIconName } from '~/components/AppIcon';
+import PageSlogan from '~/components/PageSlogan';
 
 const BRAND_RED = '#B3282D';
 const INK = '#111827';
@@ -23,7 +24,6 @@ export default function Community() {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>Community</Text>
           <Text style={styles.heading}>Find your next step.</Text>
           <Text style={styles.subheading}>
             Explore the front-facing pages of the app through a quieter icon-first directory.
@@ -80,6 +80,8 @@ export default function Community() {
             </TouchableOpacity>
           </Link>
         </View>
+
+        <PageSlogan />
       </ScrollView>
     </View>
   );
@@ -118,15 +120,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 18,
   },
-  eyebrow: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 13,
-    letterSpacing: 2.2,
-    textTransform: 'uppercase',
-    color: MUTED,
-  },
   heading: {
-    marginTop: 10,
     fontFamily: 'Montserrat-Bold',
     fontSize: 38,
     lineHeight: 40,
