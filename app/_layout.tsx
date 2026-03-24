@@ -3,7 +3,9 @@ import { useCallback, useState } from 'react';
 import { Stack, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
+import { AppAppearanceProvider, useAppAppearance } from '../components/AppAppearanceProvider';
 import BackButton from '../components/BackButton';
+import ScreenLightingOverlay from '../components/ScreenLightingOverlay';
 import SiteSplash from '../components/SiteSplash';
 import { useBrandFonts } from '../hooks/useBrandFonts';
 
@@ -12,6 +14,17 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const fontsLoaded = useBrandFonts();
+  if (!fontsLoaded) return null;
+
+  return (
+    <AppAppearanceProvider>
+      <RootLayoutContent />
+    </AppAppearanceProvider>
+  );
+}
+
+function RootLayoutContent() {
+  const { ready } = useAppAppearance();
   const [nativeSplashHidden, setNativeSplashHidden] = useState(false);
   const [showSiteSplash, setShowSiteSplash] = useState(true);
 
@@ -20,14 +33,14 @@ export default function RootLayout() {
   }, []);
 
   const onLayoutRootView = useCallback(() => {
-    if (!fontsLoaded || nativeSplashHidden) return;
+    if (!ready || nativeSplashHidden) return;
 
     SplashScreen.hideAsync()
       .catch(() => {})
       .finally(() => setNativeSplashHidden(true));
-  }, [fontsLoaded, nativeSplashHidden]);
+  }, [nativeSplashHidden, ready]);
 
-  if (!fontsLoaded) return null;
+  if (!ready) return null;
 
   return (
     <View style={styles.root} onLayout={onLayoutRootView}>
@@ -64,6 +77,7 @@ export default function RootLayout() {
       </Stack>
 
       {showSiteSplash ? <SiteSplash onFinish={handleSiteSplashFinish} /> : null}
+      <ScreenLightingOverlay />
     </View>
   );
 }

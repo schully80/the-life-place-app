@@ -17,13 +17,12 @@ function BackToCommunityGlass() {
 
 export default function TabsLayout() {
   const fontsLoaded = useBrandFonts();
-  if (!fontsLoaded) return null; // tiny splash/loader if you like
+  if (!fontsLoaded) return null;
 
   return (
     <>
       <Tabs
         screenOptions={{
-          // ✅ Show a top header on all tab screens
           headerShown: true,
           headerStyle: { backgroundColor: '#FFFFFF' },
           headerTitleStyle: {
@@ -32,7 +31,6 @@ export default function TabsLayout() {
             fontFamily: 'Montserrat-Bold',
           },
           headerShadowVisible: false,
-
           tabBarShowLabel: true,
           tabBarLabelPosition: 'below-icon',
           tabBarActiveTintColor: '#F8FBFF',
@@ -75,7 +73,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            headerShown: false, // hide header on Home only
+            headerShown: false,
             title: 'Home',
             tabBarLabel: 'Home',
             tabBarIcon: ({ focused }) => (
@@ -149,10 +147,8 @@ export default function TabsLayout() {
             ),
           }}
         />
-
       </Tabs>
 
-      {/* ✅ One-time POPIA banner across tabs */}
       <PrivacyBanner />
     </>
   );

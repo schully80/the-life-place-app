@@ -29,6 +29,7 @@ const ICONS = {
   map: { pack: 'ion', name: 'map-outline' },
   'mobile-screen': { pack: 'ion', name: 'phone-portrait-outline' },
   'mobile-screen-button': { pack: 'ion', name: 'qr-code-outline' },
+  moon: { pack: 'ion', name: 'moon-outline' },
   navigate: { pack: 'ion', name: 'navigate-outline' },
   newspaper: { pack: 'ion', name: 'newspaper-outline' },
   'paper-plane': { pack: 'ion', name: 'paper-plane-outline' },
@@ -40,6 +41,7 @@ const ICONS = {
   radio: { pack: 'ion', name: 'radio-outline' },
   'share-nodes': { pack: 'ion', name: 'share-social-outline' },
   spotify: { pack: 'mci', name: 'spotify' },
+  sunny: { pack: 'ion', name: 'sunny-outline' },
   whatsapp: { pack: 'ion', name: 'logo-whatsapp' },
   youtube: { pack: 'ion', name: 'logo-youtube' },
 } as const;

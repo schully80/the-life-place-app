@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppAppearance } from '~/components/AppAppearanceProvider';
 import AppIcon, { AppIconName } from '~/components/AppIcon';
 import PageSlogan from '~/components/PageSlogan';
 import { useBootstrap } from '~/hooks/useBootstrap';
@@ -26,7 +27,7 @@ import {
   getWhatsAppAppUrl,
 } from '~/lib/contentApi';
 import { openExternalUrl } from '~/lib/externalLinks';
-import { HOME_STYLES, HomeStyle } from '~/lib/homeDesignStyles';
+import { HOME_STYLES, type HomeStyle } from '~/lib/homeDesignStyles';
 
 const PAGE_PADDING = 20;
 const SOCIAL_ICON_SIZE = 54;
@@ -67,6 +68,7 @@ let lastActiveHomeCardId: string | null = null;
 export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { resolvedAppearance, setPreference } = useAppAppearance();
   const { data: bootstrap } = useBootstrap();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string | null>(lastActiveHomeCardId);
@@ -179,6 +181,21 @@ export default function Home() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
+          <View style={styles.lightingToggleRow}>
+            <LightingToggleButton
+              icon="moon"
+              active={resolvedAppearance === 'night'}
+              accessibilityLabel="Night lighting"
+              onPress={() => void setPreference('night')}
+            />
+            <LightingToggleButton
+              icon="sunny"
+              active={resolvedAppearance === 'day'}
+              accessibilityLabel="Day lighting"
+              onPress={() => void setPreference('day')}
+            />
+          </View>
+
           <CardSurface
             theme={activeStyle}
             style={styles.labCard}
@@ -386,6 +403,39 @@ export default function Home() {
         </View>
       </Modal>
     </View>
+  );
+}
+
+function LightingToggleButton({
+  icon,
+  active,
+  accessibilityLabel,
+  onPress,
+}: {
+  icon: AppIconName;
+  active: boolean;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  const iconColor = active ? '#B3282D' : 'rgba(243,199,202,0.76)';
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.88}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={[
+        styles.lightingToggleButton,
+        {
+          opacity: active ? 1 : 0.82,
+          transform: [{ scale: active ? 1 : 0.94 }],
+          zIndex: active ? 2 : 1,
+        },
+      ]}
+    >
+      <AppIcon name={icon} size={24} color={iconColor} />
+    </TouchableOpacity>
   );
 }
 
@@ -603,12 +653,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: PAGE_PADDING,
     gap: 18,
   },
+  lightingToggleRow: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    marginLeft: 2,
+    gap: 2,
+  },
+  lightingToggleButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   labCard: {
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
     paddingHorizontal: 12,
     paddingVertical: 12,
+    marginBottom: 12,
     borderWidth: 1,
     shadowOpacity: 0.08,
     shadowRadius: 18,
