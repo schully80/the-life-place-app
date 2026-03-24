@@ -1,97 +1,106 @@
-// app/(tabs)/index.tsx
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  Alert,
   Image,
-  TouchableOpacity,
+  ImageBackground,
+  Linking,
+  Modal,
   ScrollView,
   StyleSheet,
-  ImageBackground,
-  ActivityIndicator,
-  Dimensions,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
+import { fetchMessages, getMessageWatchUrl, MessageItem } from '~/lib/contentApi';
+import { useBootstrap } from '~/hooks/useBootstrap';
+import AppIcon, { AppIconName } from '~/components/AppIcon';
 
-const TILE_HEIGHT = 160;
-const TILE_RADIUS = 16;
+const PAGE_PADDING = 24;
+const CIRCLE = 56;
 
-type YTItem = {
-  id: { videoId?: string } | string;
-  snippet: {
-    title: string;
-    publishedAt: string;
-    thumbnails: { medium?: { url: string }; high?: { url: string } };
-  };
+type SocialItem = {
+  label: string;
+  url: string;
+  icon: AppIconName;
 };
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const EXTRA_HEADER_OFFSET = 8;
-
-  const { YOUTUBE_API_KEY, YOUTUBE_CHANNEL_ID } =
-    (Constants.expoConfig?.extra as any) ?? {};
-  const hasYouTube = Boolean(YOUTUBE_API_KEY && YOUTUBE_CHANNEL_ID);
-
+  const { data: bootstrap, loading: bootstrapLoading } = useBootstrap();
+  const [messages, setMessages] = useState<MessageItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [videos, setVideos] = useState<YTItem[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const messagesEnabled = bootstrap?.features.messagesEnabled ?? false;
+
+  const socialLinks = useMemo<SocialItem[]>(
+    () => {
+      const candidates: Array<SocialItem | null> = [
+        bootstrap?.socials.facebook
+          ? { label: 'Facebook', url: bootstrap.socials.facebook, icon: 'facebook-f' }
+          : null,
+        bootstrap?.socials.instagram
+          ? { label: 'Instagram', url: bootstrap.socials.instagram, icon: 'instagram' }
+          : null,
+        bootstrap?.socials.youtube
+          ? { label: 'YouTube', url: bootstrap.socials.youtube, icon: 'youtube' }
+          : null,
+        bootstrap?.socials.spotify
+          ? { label: 'Spotify', url: bootstrap.socials.spotify, icon: 'spotify' }
+          : null,
+        bootstrap?.socials.applePodcasts
+          ? { label: 'Apple Podcasts', url: bootstrap.socials.applePodcasts, icon: 'apple-podcasts' }
+          : null,
+      ];
+
+      return candidates.filter((item): item is SocialItem => item !== null);
+    },
+    [bootstrap]
+  );
 
   useEffect(() => {
-    let mounted = true;
-
-    // If no API creds, hide the section by skipping fetch and clearing state
-    if (!hasYouTube) {
-      setLoading(false);
-      setError(null);
-      setVideos([]);
-      return () => {
-        mounted = false;
-      };
+    if (bootstrapLoading) {
+      return;
     }
+
+    if (!messagesEnabled) {
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
 
     (async () => {
       try {
-        setLoading(true);
-        setError(null);
-
-        const url =
-          `https://www.googleapis.com/youtube/v3/search` +
-          `?part=snippet&channelId=${encodeURIComponent(YOUTUBE_CHANNEL_ID)}` +
-          `&maxResults=12&order=date&type=video&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
-
-        const res = await fetch(url);
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.error?.message || 'YouTube API error');
-
-        if (mounted) setVideos(json.items || []);
-      } catch (e: any) {
-        if (mounted) setError(e?.message || 'Failed to load messages');
+        const items = await fetchMessages();
+        if (!active) return;
+        setMessages(items.slice(0, 4));
+      } catch {
+        if (!active) return;
+        setMessages([]);
       } finally {
-        if (mounted) setLoading(false);
+        if (active) setLoading(false);
       }
     })();
 
     return () => {
-      mounted = false;
+      active = false;
     };
-  }, [hasYouTube, YOUTUBE_API_KEY, YOUTUBE_CHANNEL_ID]);
+  }, [bootstrapLoading, messagesEnabled]);
 
-  // 2-column card sizing for messages
-  const CARD_GAP = 12;
-  const H_PADDING = 24;
-  const cardWidth = useMemo(() => {
-    const screenW = Dimensions.get('window').width;
-    return (screenW - H_PADDING * 2 - CARD_GAP) / 2;
-  }, []);
-
-  const openVideo = (item: YTItem) => {
-    const videoId = typeof item.id === 'string' ? item.id : item.id?.videoId || '';
-    router.push({ pathname: '/messages', params: { video: videoId } });
+  const openSocialUrl = async (url: string, label: string) => {
+    try {
+      const ok = await Linking.canOpenURL(url);
+      if (!ok) return Alert.alert('Could not open link', `${label} is not supported on this device.`);
+      await Linking.openURL(url);
+      setSheetOpen(false);
+    } catch {
+      Alert.alert('Something went wrong', 'Please try again.');
+    }
   };
 
   return (
@@ -101,147 +110,128 @@ export default function Home() {
       resizeMode="cover"
     >
       <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
-        {/* ✅ Full-width white header (logo only) */}
-        <View style={[styles.headerWrap, { paddingTop: insets.top + EXTRA_HEADER_OFFSET }]}>
-          <Image
-            source={require('../../assets/logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+        <View style={[styles.headerWrap, { paddingTop: insets.top + 10 }]}>
+          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          <Text style={styles.tagline}>{bootstrap?.site.tagline || 'Come. See. Jesus.'}</Text>
         </View>
 
-        {/* Page body */}
         <View style={styles.body}>
-          {/* 📺 Featured — HIDDEN entirely when no API key/channel */}
-          {hasYouTube && (
-            <>
-              <Text style={styles.sectionTitle}>FEATURED</Text>
+          <View style={styles.heroCard}>
+            <Text style={styles.eyebrow}>Welcome</Text>
+            <Text style={styles.heroTitle}>Everything you need to stay connected to The Life Place.</Text>
+            <Text style={styles.heroCopy}>
+              Messages, prayer, giving, events, and visit information now come from the same
+              shared source of truth as the site.
+            </Text>
+          </View>
 
+          {messagesEnabled ? (
+            <>
+              <Text style={styles.sectionTitle}>Latest Messages</Text>
               {loading ? (
                 <View style={styles.stateWrap}>
                   <ActivityIndicator size="large" color="#B3282D" />
-                  <Text style={styles.stateText}>Loading sermons…</Text>
+                  <Text style={styles.stateText}>Loading messages…</Text>
                 </View>
-              ) : error ? (
-                // Don’t show error text during capture; render nothing
-                <View />
-              ) : videos.length === 0 ? (
+              ) : messages.length === 0 ? (
                 <View style={styles.stateWrap}>
-                  <Ionicons name="albums-outline" size={20} color="#6B7280" />
-                  <Text style={styles.stateText}>No messages yet.</Text>
+                  <AppIcon name="albums" size={20} color="#6B7280" />
+                  <Text style={styles.stateText}>Messages will appear here soon.</Text>
                 </View>
               ) : (
-                <View style={{ gap: CARD_GAP }}>
-                  {/* first row */}
-                  <View style={{ flexDirection: 'row', gap: CARD_GAP, marginBottom: CARD_GAP }}>
-                    {videos.slice(0, 2).map((item, i) => {
-                      const thumb =
-                        item.snippet.thumbnails.high?.url ||
-                        item.snippet.thumbnails.medium?.url ||
-                        '';
-                      return (
-                        <TouchableOpacity
-                          key={`v0-${i}`}
-                          onPress={() => openVideo(item)}
-                          activeOpacity={0.85}
-                          style={[styles.card, { width: cardWidth }]}
-                        >
-                          <Image source={{ uri: thumb }} style={styles.cardImage} resizeMode="cover" />
-                          <Text numberOfLines={2} style={styles.cardTitle}>
-                            {item.snippet.title}
-                          </Text>
-                          <View style={styles.cardMeta}>
-                            <Ionicons name="time-outline" size={14} color="#6B7280" />
-                            <Text style={styles.cardMetaText}>
-                              {new Date(item.snippet.publishedAt).toLocaleDateString()}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-
-                  {/* remaining rows */}
-                  {Array.from({ length: Math.ceil((videos.length - 2) / 2) }).map((_, rowIdx) => {
-                    const start = 2 + rowIdx * 2;
-                    const row = videos.slice(start, start + 2);
-                    return (
-                      <View key={`row-${rowIdx}`} style={{ flexDirection: 'row', gap: CARD_GAP }}>
-                        {row.map((item, i) => {
-                          const thumb =
-                            item.snippet.thumbnails.high?.url ||
-                            item.snippet.thumbnails.medium?.url ||
-                            '';
-                          return (
-                            <TouchableOpacity
-                              key={`v${start}-${i}`}
-                              onPress={() => openVideo(item)}
-                              activeOpacity={0.85}
-                              style={[styles.card, { width: cardWidth }]}
-                            >
-                              <Image source={{ uri: thumb }} style={styles.cardImage} resizeMode="cover" />
-                              <Text numberOfLines={2} style={styles.cardTitle}>
-                                {item.snippet.title}
-                              </Text>
-                              <View style={styles.cardMeta}>
-                                <Ionicons name="time-outline" size={14} color="#6B7280" />
-                                <Text style={styles.cardMetaText}>
-                                  {new Date(item.snippet.publishedAt).toLocaleDateString()}
-                                </Text>
-                              </View>
-                            </TouchableOpacity>
-                          );
-                        })}
-                        {row.length === 1 && <View style={{ width: cardWidth }} />}
-                      </View>
-                    );
-                  })}
+                <View style={styles.messageGrid}>
+                  {messages.map((message) => (
+                    <TouchableOpacity
+                      key={message.id}
+                      style={styles.messageCard}
+                      activeOpacity={0.88}
+                      onPress={() => {
+                        const watchUrl = getMessageWatchUrl(message);
+                        if (watchUrl) Linking.openURL(watchUrl);
+                      }}
+                    >
+                      <Image source={{ uri: message.thumbnail }} style={styles.messageImage} resizeMode="cover" />
+                      <Text numberOfLines={2} style={styles.messageTitle}>
+                        {message.title}
+                      </Text>
+                      <Text style={styles.messageMeta}>
+                        {message.preacher} • {new Date(message.date).toLocaleDateString()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               )}
             </>
-          )}
+          ) : null}
 
-          {/* 🌿 Feature Cards (bigger but spaced, not touching) */}
-          <View style={[styles.cards, { marginTop: hasYouTube ? 24 : 6 }]}>
-            <Link href="/events" asChild>
-              <TouchableOpacity style={styles.cardSingle}>
-                <Ionicons name="calendar-outline" size={28} color="#B3282D" />
-                <Text style={styles.cardText}>EVENTS</Text>
-              </TouchableOpacity>
-            </Link>
-
-            <Link href="/devotionals" asChild>
-              <TouchableOpacity style={styles.cardSingle}>
-                <Ionicons name="book-outline" size={28} color="#B3282D" />
-                <Text style={styles.cardText}>DEVOTIONALS</Text>
-              </TouchableOpacity>
-            </Link>
-
-            <Link href="/meet-schulter-jenny" asChild>
-              <TouchableOpacity style={styles.cardSingle}>
-                <Ionicons name="people-outline" size={28} color="#B3282D" />
-                <Text style={styles.cardText}>SCHULTER AND GENEVIEVE</Text>
-              </TouchableOpacity>
-            </Link>
-
-            <Link href="/blog" asChild>
-              <TouchableOpacity style={styles.cardSingle}>
-                <Ionicons name="newspaper-outline" size={28} color="#B3282D" />
-                <Text style={styles.cardText}>OUR BLOG</Text>
-              </TouchableOpacity>
-            </Link>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.actionList}>
+            <ActionLink href="/devotionals" icon="book-open" label="Devotionals" />
+            <TouchableOpacity
+              style={styles.actionCard}
+              activeOpacity={0.88}
+              onPress={() => setSheetOpen(true)}
+            >
+              <AppIcon name="share-nodes" size={26} color="#B3282D" />
+              <Text style={styles.actionLabel}>Follow Us</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
+
+      <Modal visible={sheetOpen} animationType="slide" transparent onRequestClose={() => setSheetOpen(false)}>
+        <TouchableWithoutFeedback onPress={() => setSheetOpen(false)}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
+
+        <View style={styles.sheet}>
+          <View style={styles.grabber} />
+
+          <View style={styles.iconGrid}>
+            {socialLinks.map((item) => (
+              <TouchableOpacity
+                key={item.label}
+                onPress={() => openSocialUrl(item.url, item.label)}
+                activeOpacity={0.9}
+                style={styles.circle}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+              >
+                <AppIcon name={item.icon} size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity style={styles.closeBtn} onPress={() => setSheetOpen(false)}>
+            <Text style={styles.closeText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
 
-const PAGE_PADDING = 24;
+function ActionLink({
+  href,
+  icon,
+  label,
+}: {
+  href: '/devotionals';
+  icon: AppIconName;
+  label: string;
+}) {
+  return (
+    <Link href={href} asChild>
+      <TouchableOpacity style={styles.actionCard} activeOpacity={0.88}>
+        <AppIcon name={icon} size={26} color="#B3282D" />
+        <Text style={styles.actionLabel}>{label}</Text>
+      </TouchableOpacity>
+    </Link>
+  );
+}
 
 const styles = StyleSheet.create({
   bg: { flex: 1 },
-
   headerWrap: {
     width: '100%',
     backgroundColor: '#FFFFFF',
@@ -251,90 +241,163 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-
   logo: { width: 72, height: 72 },
-
-  body: { paddingHorizontal: PAGE_PADDING, paddingTop: 20 },
-
-  sectionTitle: {
-    fontFamily: 'Montserrat-SemiBold',
-    fontSize: 18,
-    color: '#111827',
-    marginBottom: 10,
-    textAlign: 'right',
-    alignSelf: 'flex-end',
+  tagline: {
+    marginTop: 6,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 14,
+    color: '#6B7280',
   },
-
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: TILE_RADIUS,
-    height: TILE_HEIGHT,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 3,
+  body: { paddingHorizontal: PAGE_PADDING, paddingTop: 20 },
+  heroCard: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
     borderColor: '#F1F5F9',
-    marginBottom: 14,
-    width: '100%',
+    alignItems: 'center',
   },
-  cardImage: {
-    width: '100%',
-    height: 120,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
+  eyebrow: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 13,
+    color: '#B3282D',
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
   },
-  cardTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
+  heroTitle: {
+    marginTop: 10,
+    maxWidth: 320,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 30,
+    lineHeight: 34,
     color: '#111827',
-    paddingTop: 10,
-    minHeight: 44,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  heroCopy: {
+    marginTop: 10,
+    maxWidth: 320,
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#6B7280',
     textAlign: 'center',
   },
-  cardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingBottom: 10,
-    justifyContent: 'center',
+  sectionTitle: {
+    marginTop: 22,
+    marginBottom: 12,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 13,
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
   },
-  cardMetaText: {
+  stateWrap: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 18,
+    padding: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  stateText: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  messageGrid: {
+    gap: 12,
+  },
+  messageCard: {
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  messageImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  messageTitle: {
+    marginTop: 12,
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    color: '#111827',
+  },
+  messageMeta: {
+    marginTop: 6,
+    fontFamily: 'Montserrat-Regular',
     fontSize: 12,
     color: '#6B7280',
   },
-
-  cards: {
-    flexDirection: 'column',
-    gap: 0,
+  actionList: {
+    gap: 12,
   },
-  cardSingle: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingVertical: 22,
+  actionCard: {
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
     borderWidth: 1,
     borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-    minHeight: 160,
-    marginBottom: 18,
   },
-  cardText: {
+  actionLabel: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 18,
+    fontSize: 15,
     color: '#111827',
-    marginTop: 8,
-    letterSpacing: 2.0,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-
-  stateWrap: { alignItems: 'center', gap: 8, paddingVertical: 16 },
-  stateText: { color: '#6B7280' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  grabber: {
+    alignSelf: 'center',
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E7EB',
+    marginBottom: 8,
+  },
+  iconGrid: {
+    marginTop: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  circle: {
+    width: CIRCLE,
+    height: CIRCLE,
+    borderRadius: CIRCLE / 2,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  closeBtn: {
+    marginTop: 14,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#F3F4F6',
+  },
+  closeText: { fontFamily: 'Montserrat-Medium', color: '#111827' },
 });

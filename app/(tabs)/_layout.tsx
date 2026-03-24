@@ -1,14 +1,13 @@
 // app/(tabs)/_layout.tsx
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet } from 'react-native';
 import { useBrandFonts } from '../../hooks/useBrandFonts';
 import PrivacyBanner from '../../components/PrivacyBanner';
 import BackButton from '../../components/BackButton';
 import { useRouter } from 'expo-router';
+import AppIcon from '../../components/AppIcon';
 
 function BackToCommunityGlass() {
   const router = useRouter();
@@ -69,9 +68,7 @@ export default function TabsLayout() {
           options={{
             headerShown: false, // hide header on Home only
             title: 'Home',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home-outline" color={color} size={size} />
-            ),
+            tabBarIcon: ({ color, size }) => <AppIcon name="home" color={color} size={size} />,
           }}
         />
 
@@ -79,9 +76,7 @@ export default function TabsLayout() {
           name="live"
           options={{
             title: 'Live',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="radio-outline" color={color} size={size} />
-            ),
+            tabBarIcon: ({ color, size }) => <AppIcon name="radio" color={color} size={size} />,
           }}
         />
 
@@ -89,9 +84,16 @@ export default function TabsLayout() {
           name="community"
           options={{
             title: 'Community',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="people-outline" color={color} size={size} />
-            ),
+            tabBarIcon: ({ color, size }) => <AppIcon name="people" color={color} size={size} />,
+          }}
+        />
+
+        <Tabs.Screen
+          name="generosity"
+          options={{
+            title: 'Generosity',
+            headerLeft: () => <BackToCommunityGlass />,
+            tabBarIcon: ({ color, size }) => <AppIcon name="hand-holding-heart" size={size} color={color} />,
           }}
         />
 
@@ -99,22 +101,9 @@ export default function TabsLayout() {
           name="prayer"
           options={{
             title: 'Prayer',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="hands-pray" color={color} size={size} />
-            ),
+            tabBarIcon: ({ color, size }) => <AppIcon name="hands-praying" color={color} size={size} />,
           }}
         />
-
-<Tabs.Screen
-  name="generosity"
-  options={{
-    title: 'Generosity',
-    headerLeft: () => <BackToCommunityGlass />, // round glass & always to /community
-    tabBarIcon: ({ color, size }) => (
-      <MaterialCommunityIcons name="hand-heart-outline" size={size} color={color} />
-    ),
-  }}
-/>
 
       </Tabs>
 

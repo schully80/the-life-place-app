@@ -1,9 +1,9 @@
 // components/BackButton.tsx
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
+import AppIcon from './AppIcon';
 
 type Props = {
   label?: string;
@@ -44,7 +44,7 @@ export default function BackButton({
           style={styles.glassBtn}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chevron-back" size={18} color="#111827" />
+          <AppIcon name="back" size={18} color="#111827" />
         </TouchableOpacity>
       </View>
     );
@@ -59,7 +59,7 @@ export default function BackButton({
       accessibilityRole="button"
       accessibilityLabel={label ? `Back, ${label}` : 'Back'}
     >
-      <Ionicons name="chevron-back" size={22} color={color} />
+      <AppIcon name="back" size={22} color={color} />
       {label ? <Text style={[styles.plainLabel, { color }]}>{label}</Text> : null}
     </TouchableOpacity>
   );

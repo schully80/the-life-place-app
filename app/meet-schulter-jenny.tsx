@@ -1,4 +1,3 @@
-// app/meet-schulter-jenny.tsx
 import React from 'react';
 import {
   View,
@@ -9,18 +8,18 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
-  Platform,
 } from 'react-native';
 import { Stack } from 'expo-router';
-import QRCode from 'react-native-qrcode-svg';
+import { useBootstrap } from '~/hooks/useBootstrap';
 
 const BRAND_RED = '#B3282D';
 const WARM = '#4B5563';
 
-const SUBSTACK_URL = 'https://schulteretyang.substack.com';
-const SNAPSCAN_URL = 'https://pos.snapscan.io/qr/VISFNLkM';
-
 export default function MeetSchulterJenny() {
+  const { data } = useBootstrap();
+  const substackUrl = data?.links.blogUrl || 'https://schulteretyang.substack.com';
+  const snapscanUrl = data?.giving.snapscan.url || 'https://pos.snapscan.io/qr/VISFNLkM';
+
   const openUrl = async (url: string, label?: string) => {
     try {
       const supported = await Linking.canOpenURL(url);
@@ -38,7 +37,6 @@ export default function MeetSchulterJenny() {
     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <Stack.Screen options={{ title: 'Schulter & Genevieve' }} />
 
-      {/* Header photo with rounded corners and NO text */}
       <View style={styles.heroWrap}>
         <Image
           source={require('../assets/schulter-jenny.jpg')}
@@ -48,7 +46,6 @@ export default function MeetSchulterJenny() {
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Bio */}
         <Text style={styles.paragraph}>
           Schulter and Genevieve (Jenny) Etyang are the founders of
           <Text style={styles.bold}> The Life Place</Text>, Craigavon AH, Sandton, South Africa.
@@ -65,28 +62,20 @@ export default function MeetSchulterJenny() {
           watching sports, Netflix and chill, and the simple things in life.
         </Text>
 
-        {/* Connect with us */}
         <Text style={styles.h2}>Connect with us</Text>
 
         <View style={styles.cardsWrap}>
-          {/* Substack card */}
           <View style={styles.card}>
-            <View style={styles.qrWrap}>
-              <QRCode value={SUBSTACK_URL} size={Platform.OS === 'ios' ? 160 : 150} />
-            </View>
-
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>
-                Subscribe to {'\n'}Schulter’s Substack
-              </Text>
+              <Text style={styles.cardTitle}>Read Schulter&apos;s writing</Text>
               <Text style={styles.cardText}>
-                Scan the code or tap below to get new posts from Schulter.
+                Open the shared blog destination to read the latest posts and reflections.
               </Text>
 
               <TouchableOpacity
                 style={styles.ctaOutline}
                 activeOpacity={0.9}
-                onPress={() => openUrl(SUBSTACK_URL, 'Substack')}
+                onPress={() => openUrl(substackUrl, 'Substack')}
                 accessibilityRole="button"
                 accessibilityLabel="Open Schulter’s Substack"
               >
@@ -95,24 +84,17 @@ export default function MeetSchulterJenny() {
             </View>
           </View>
 
-          {/* SnapScan card */}
           <View style={styles.card}>
-            <View style={styles.qrWrap}>
-              <QRCode value={SNAPSCAN_URL} size={Platform.OS === 'ios' ? 160 : 150} />
-            </View>
-
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>
-                Partner with {'\n'}The Life Place
-              </Text>
+              <Text style={styles.cardTitle}>Partner with The Life Place</Text>
               <Text style={styles.cardText}>
-                Scan or tap to open our SnapScan portal directly.
+                Open the shared giving destination to support the work of The Life Place.
               </Text>
 
               <TouchableOpacity
                 style={styles.ctaOutline}
                 activeOpacity={0.9}
-                onPress={() => openUrl(SNAPSCAN_URL, 'SnapScan')}
+                onPress={() => openUrl(snapscanUrl, 'SnapScan')}
                 accessibilityRole="button"
                 accessibilityLabel="Open SnapScan portal"
               >
@@ -121,10 +103,6 @@ export default function MeetSchulterJenny() {
             </View>
           </View>
         </View>
-
-        <Text style={styles.note}>
-          Trouble scanning? Use the buttons above to open the links directly.
-        </Text>
       </ScrollView>
     </View>
   );
@@ -145,13 +123,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   heroImage: { width: '100%', height: '100%' },
-
   container: {
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 40,
   },
-
   paragraph: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 14,
@@ -161,7 +137,6 @@ const styles = StyleSheet.create({
   },
   bold: { fontFamily: 'Montserrat-SemiBold' },
   red: { color: BRAND_RED, fontWeight: '600' },
-
   h2: {
     marginTop: 6,
     marginBottom: 10,
@@ -170,13 +145,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#111827',
   },
-
   cardsWrap: {
     gap: 14,
   },
   card: {
-    flexDirection: 'row',
-    gap: 14,
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -187,16 +159,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
-  },
-  qrWrap: {
-    width: 170,
-    height: 170,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   cardTitle: {
     fontFamily: 'Montserrat-SemiBold',
@@ -211,7 +173,6 @@ const styles = StyleSheet.create({
     color: WARM,
     lineHeight: 18,
   },
-
   ctaOutline: {
     marginTop: 10,
     alignSelf: 'flex-start',
@@ -225,13 +186,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-SemiBold',
     color: BRAND_RED,
     fontSize: 14,
-  },
-
-  note: {
-    marginTop: 10,
-    textAlign: 'center',
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 12,
-    color: '#6B7280',
   },
 });

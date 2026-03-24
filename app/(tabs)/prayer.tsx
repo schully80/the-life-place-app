@@ -11,11 +11,14 @@ import {
   Platform,
   ScrollView,
   ImageBackground,
+  Linking,
 } from 'react-native';
 import { Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import Constants from 'expo-constants';
+import { toAbsoluteSiteUrl } from '~/lib/contentApi';
+import AppIcon from '~/components/AppIcon';
+import { useBootstrap } from '~/hooks/useBootstrap';
+import { config } from '~/lib/appConfig';
 
 const COLORS = {
   brand: '#B3282D',
@@ -30,10 +33,12 @@ const COLORS = {
 const WORD_LIMIT = 75;
 
 export default function Prayer() {
+  const { data } = useBootstrap();
   const [name, setName] = useState('');
   const [email, setEmail] = useState(''); // ✉️ new
   const [request, setRequest] = useState('');
   const [consent, setConsent] = useState(false); // ✅ POPIA consent
+  const supportEmail = data?.contact.email || 'hello@thelifeplace.org';
 
   const wordsUsed = useMemo(
     () => request.trim().split(/\s+/).filter(Boolean).length,
@@ -57,6 +62,13 @@ export default function Prayer() {
     !overLimit &&
     consent;
 
+  const webhook = config.prayerEmailWebhook;
+  const hasConfiguredWebhook =
+    !!webhook &&
+    !/your-domain\.example/i.test(webhook) &&
+    !/example\.com/i.test(webhook);
+  const submitUrl = hasConfiguredWebhook ? webhook! : toAbsoluteSiteUrl('/api/prayer');
+
   const onSubmit = async () => {
     if (!canSubmit) return;
 
@@ -64,26 +76,42 @@ export default function Prayer() {
       name: name.trim(),
       email: email.trim(),
       request: request.trim(),
-      wordsUsed,
-      createdAt: new Date().toISOString(),
+      consent,
       source: 'tlp-app/prayer',
     };
 
-    const webhook =
-      (Constants.expoConfig?.extra as any)?.PRAYER_EMAIL_WEBHOOK ||
-      (Constants.manifest2?.extra as any)?.PRAYER_EMAIL_WEBHOOK;
-
     try {
-      if (webhook) {
-        const res = await fetch(webhook, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          throw new Error(`Webhook failed (${res.status})`);
-        }
+      const res = await fetch(submitUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (res.status === 429 && data?.reason === 'limit_reached') {
+        Alert.alert(
+          'A prayer request from this email is already active',
+          'Please wait 7 days before submitting another request, or contact us directly if it is urgent.'
+        );
+        return;
       }
+
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.detail || `Prayer request failed (${res.status})`);
+      }
+
+      if (data?.email_error) {
+        Alert.alert(
+          'Request received',
+          'Thank you. Your prayer request has been received, but we could not confirm delivery by email right now.'
+        );
+        setName('');
+        setEmail('');
+        setRequest('');
+        setConsent(false);
+        return;
+      }
+
       Alert.alert(
         'Request sent',
         'Thank you—we’ll pray with you. A confirmation has been sent to your email.'
@@ -94,8 +122,27 @@ export default function Prayer() {
       setConsent(false);
     } catch (e: any) {
       Alert.alert(
-        'Request submitted',
-        'We received your request, but the email confirmation could not be sent right now.'
+        'Request not sent',
+        'We could not send your prayer request right now. You can email it to us instead.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Email instead',
+            onPress: () => {
+              const subject = encodeURIComponent(`Prayer Request from ${name.trim()}`);
+              const body = encodeURIComponent(
+                [
+                  `Name: ${name.trim()}`,
+                  `Email: ${email.trim()}`,
+                  '',
+                  'Prayer request:',
+                  request.trim(),
+                ].join('\n')
+              );
+              void Linking.openURL(`mailto:${supportEmail}?subject=${subject}&body=${body}`);
+            },
+          },
+        ]
       );
     }
   };
@@ -110,7 +157,7 @@ export default function Prayer() {
       >
         {/* Full-screen background image */}
         <ImageBackground
-          source={require('../../assets/prayer-bg.png')}
+          source={require('../../assets/prayer-bg-web.jpg')}
           style={styles.bg}
           resizeMode="cover"
           imageStyle={{ opacity: 1.0 }}
@@ -224,7 +271,7 @@ export default function Prayer() {
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: consent }}
                   >
-                    {consent ? <Ionicons name="checkmark" size={16} color="#FFF" /> : null}
+                    {consent ? <AppIcon name="check" size={16} color="#FFF" /> : null}
                   </TouchableOpacity>
                   <Text style={styles.consentText}>
                     I consent to The Life Place using this information solely to respond to my request.
@@ -238,7 +285,7 @@ export default function Prayer() {
                   style={[styles.cta, !canSubmit && styles.ctaDisabled]}
                   accessibilityRole="button"
                 >
-                  <Ionicons name="paper-plane-outline" size={18} color="#fff" />
+                  <AppIcon name="paper-plane" size={18} color="#fff" />
                   <Text style={styles.ctaText}>Send</Text>
                 </TouchableOpacity>
 

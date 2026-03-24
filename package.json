@@ -11,6 +11,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "build:web": "expo export -p web && cp public/_redirects dist/_redirects",
     "prebuild": "expo prebuild",
     "clean": "rm -rf node_modules && rm -f package-lock.json && npm install",
     "eas:login": "eas login",
@@ -29,7 +30,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@supabase/supabase-js": "^2.74.0",
-    "expo": "54.0.23",
+    "expo": "^54.0.31",
     "expo-blur": "~15.0.7",
     "expo-constants": "~18.0.9",
     "expo-dev-client": "~6.0.17",
@@ -50,9 +51,9 @@
   },
   "devDependencies": {
     "@expo/ngrok": "^4.1.0",
-    "@google/gemini-cli": "^0.11.0",
+    "@google/gemini-cli": "^0.1.18",
     "@types/react": "~19.1.10",
-    "eas-cli": "^16.27.0",
+    "eas-cli": "^0.0.0",
     "typescript": "~5.9.2"
   }
 }

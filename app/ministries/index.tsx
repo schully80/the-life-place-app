@@ -1,74 +1,113 @@
-// app/ministries/index.tsx
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ImageBackground } from 'react-native';
+import { ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { useBootstrap } from '~/hooks/useBootstrap';
 
-const BRAND_RED = '#B3282D';
-
-type Ministry = { title: string; slug: string; image: any };
-
-const MINISTRIES: Ministry[] = [
-  { title: 'Bring Them to Jesus',   slug: 'bring-them-to-jesus',   image: require('../../assets/min-bring-them-to-jesus.jpg') },
-  { title: 'Faith & Work',          slug: 'faith-and-work',        image: require('../../assets/min-faith-and-work.jpg') },
-  { title: 'thisgen',               slug: 'this-gen',              image: require('../../assets/min-this-gen.jpg') },
-  { title: 'Institute',              slug: 'institute',              image: require('../../assets/min-institute.jpg') }, // kept your spelling
-  { title: 'Kids',                  slug: 'kids',                  image: require('../../assets/min-kids.jpg') },
-  { title: 'New Members',           slug: 'new-members',           image: require('../../assets/min-new-members.jpg') },
-  { title: 'Premarital Counseling', slug: 'premarital-counseling', image: require('../../assets/min-premarital-counseling.jpg') },
-  { title: 'Relief Center',         slug: 'relief-center',         image: require('../../assets/min-relief-center.jpg') },
-];
+const IMAGES: Record<string, any> = {
+  'bring-them-to-jesus': require('../../assets/min-bring-them-to-jesus.jpg'),
+  'faith-and-work': require('../../assets/min-faith-and-work.jpg'),
+  'this-gen': require('../../assets/min-this-gen.jpg'),
+  institute: require('../../assets/min-institute.jpg'),
+  kids: require('../../assets/min-kids.jpg'),
+  'new-members': require('../../assets/min-new-members.jpg'),
+  'premarital-counseling': require('../../assets/min-premarital-counseling.jpg'),
+  'relief-center': require('../../assets/min-relief-center.jpg'),
+};
 
 export default function MinistriesIndex() {
   const router = useRouter();
+  const { data, loading, error } = useBootstrap();
+  const ministriesEnabled = data?.features.ministriesEnabled ?? false;
 
   return (
     <>
       <Stack.Screen options={{ title: 'Ministries' }} />
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.h1}>Life at The Life Place</Text>
-        <Text style={styles.sub}>
-          Come. See. <Text style={styles.subEmph}>Jesus</Text>
-        </Text>
-        <Text style={styles.intro}>
-          Our ministries are designed to help people grow in Jesus, build strong families,
-          and live out their faith in every sphere of life.
-        </Text>
-
-        <View style={styles.grid}>
-          {MINISTRIES.map((m) => (
-            <TouchableOpacity
-              key={m.slug}
-              activeOpacity={0.9}
-              onPress={() => router.push(`/ministries/${m.slug}`)}
-            >
-              <ImageBackground
-                source={m.image}
-                style={styles.tile}
-                imageStyle={styles.tileImg}
-                resizeMode="cover"
-              >
-                <View style={styles.overlay} />
-                <Text style={styles.tileTitle}>{m.title}</Text>
-              </ImageBackground>
-            </TouchableOpacity>
-          ))}
+      {loading ? (
+        <View style={styles.stateWrap}>
+          <Text style={styles.stateText}>Loading ministries…</Text>
         </View>
-      </ScrollView>
+      ) : error || !data ? (
+        <View style={styles.stateWrap}>
+          <Text style={styles.stateTitle}>Ministries unavailable</Text>
+          <Text style={styles.stateText}>{error || 'Unable to load ministries.'}</Text>
+        </View>
+      ) : !ministriesEnabled ? (
+        <View style={styles.stateWrap}>
+          <Text style={styles.stateTitle}>Ministries hidden</Text>
+          <Text style={styles.stateText}>
+            This page is currently silenced in the app and can be re-enabled when you are ready.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.container}>
+          <Text style={styles.h1}>Life at The Life Place</Text>
+          <Text style={styles.sub}>Come. See. Jesus</Text>
+          <Text style={styles.intro}>
+            Explore the ministries and communities that help shape life at The Life Place.
+          </Text>
+
+          <View style={styles.grid}>
+            {data.ministries.map((ministry) => (
+              <TouchableOpacity
+                key={ministry.slug}
+                activeOpacity={0.9}
+                onPress={() =>
+                  router.push({
+                    pathname: '/ministries/[slug]',
+                    params: { slug: ministry.slug },
+                  })
+                }
+              >
+                <ImageBackground
+                  source={IMAGES[ministry.slug]}
+                  style={styles.tile}
+                  imageStyle={styles.tileImg}
+                  resizeMode="cover"
+                >
+                  <View style={styles.overlay} />
+                  <Text style={styles.tileTitle}>{ministry.title}</Text>
+                </ImageBackground>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      )}
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 40, backgroundColor: '#FFFFFF' },
-  h1: { fontFamily: 'Montserrat-SemiBold', fontSize: 28, color: '#111827', textAlign: 'center' },
-  sub: { marginTop: 8, fontFamily: 'Montserrat-Medium', fontSize: 18, color: '#6B7280', textAlign: 'center' },
-  subEmph: { color: BRAND_RED, fontFamily: 'Montserrat-Bold' },
-  intro: {
-    marginTop: 10, fontFamily: 'Montserrat-Regular', fontSize: 16, lineHeight: 24, color: '#6B7280', textAlign: 'center',
+  container: {
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 40,
+    backgroundColor: '#FFFFFF',
   },
-
-  grid: { marginTop: 16, rowGap: 14, columnGap: 14 },
-
+  h1: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 28,
+    color: '#111827',
+    textAlign: 'center',
+  },
+  sub: {
+    marginTop: 8,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 18,
+    color: '#B3282D',
+    textAlign: 'center',
+  },
+  intro: {
+    marginTop: 10,
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  grid: {
+    marginTop: 16,
+    rowGap: 14,
+    columnGap: 14,
+  },
   tile: {
     height: 120,
     borderRadius: 14,
@@ -82,8 +121,26 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontFamily: 'Montserrat-SemiBold',
     fontSize: 18,
-    letterSpacing: 0.3,
     textAlign: 'center',
     paddingHorizontal: 12,
+  },
+  stateWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    gap: 8,
+  },
+  stateTitle: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 18,
+    color: '#111827',
+  },
+  stateText: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });

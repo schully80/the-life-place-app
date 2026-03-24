@@ -1,179 +1,214 @@
-// app/messages.tsx
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { g } from '~/lib/styles';
-import { config } from '~/lib/appConfig';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { fetchMessages, getMessageWatchUrl, MessageItem } from '~/lib/contentApi';
+import { useBootstrap } from '~/hooks/useBootstrap';
 
-type YTItem = {
-  id: { videoId?: string } | string;
-  snippet: {
-    title: string;
-    thumbnails: { medium?: { url: string }; high?: { url: string } };
-  };
-};
-
-function MessagesPlaceholder() {
-  const channelUrl = config.youtubeChannelId
-    ? `https://www.youtube.com/channel/${config.youtubeChannelId}`
-    : 'https://www.youtube.com';
-
-  return (
-    <View style={[g.card, { alignItems: 'center' }]}>
-      <Ionicons name="albums-outline" size={36} color="#B3282D" />
-      <Text style={[g.h2, { marginTop: 8 }]}>Messages coming soon</Text>
-      <Text style={[g.p, { textAlign: 'center', marginTop: 6 }]}>
-        We’re getting our latest messages ready. Check back shortly.
-      </Text>
-
-      {/* ⬇️ Icon-only, round, clickable YouTube button */}
-      <TouchableOpacity
-        onPress={() => Linking.openURL(channelUrl)}
-        accessibilityRole="button"
-        accessibilityLabel="Visit our YouTube channel"
-        style={{
-          marginTop: 12,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: '#B3282D',
-          alignItems: 'center',
-          justifyContent: 'center',
-          shadowColor: '#000',
-          shadowOpacity: 0.15,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 4,
-        }}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="logo-youtube" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-export default function Sermons() {
-  const [items, setItems] = useState<YTItem[]>([]);
+export default function Messages() {
+  const { data: bootstrap, loading: bootstrapLoading, error: bootstrapError } = useBootstrap();
+  const [messages, setMessages] = useState<MessageItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // ✅ Hide YouTube errors and show a clean placeholder when not configured
-  const hasYouTube = Boolean(config.youtubeApiKey && config.youtubeChannelId);
+  const [error, setError] = useState<string | null>(null);
+  const messagesEnabled = bootstrap?.features.messagesEnabled ?? false;
 
   useEffect(() => {
-    let mounted = true;
-
-    if (!hasYouTube) {
-      setItems([]);
-      setLoading(false);
-      return () => {
-        mounted = false;
-      };
+    if (bootstrapLoading) {
+      return;
     }
+
+    if (bootstrapError || !messagesEnabled) {
+      setMessages([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
 
     (async () => {
       try {
-        setLoading(true);
-        const qs = new URLSearchParams({
-          key: String(config.youtubeApiKey),
-          channelId: String(config.youtubeChannelId),
-          part: 'snippet',
-          order: 'date',
-          maxResults: '15',
-          type: 'video',
-        });
-        const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${qs.toString()}`);
-        const data = await res.json();
-        if (!mounted) return;
-        setItems(data?.items || []);
-      } catch {
-        if (!mounted) return;
-        // Swallow errors during capture — show empty state instead of an error
-        setItems([]);
+        const items = await fetchMessages();
+        if (!active) return;
+        setMessages(items);
+        setError(null);
+      } catch (err: any) {
+        if (!active) return;
+        setError(err?.message || 'Failed to load messages');
       } finally {
-        if (mounted) setLoading(false);
+        if (active) setLoading(false);
       }
     })();
 
     return () => {
-      mounted = false;
+      active = false;
     };
-  }, [hasYouTube]);
+  }, [bootstrapError, bootstrapLoading, messagesEnabled]);
+
+  if (bootstrapLoading || loading) {
+    return (
+      <View style={styles.stateWrap}>
+        <ActivityIndicator size="large" color="#B3282D" />
+        <Text style={styles.stateText}>Loading messages…</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.stateWrap}>
+        <Text style={styles.stateTitle}>Messages unavailable</Text>
+        <Text style={styles.stateText}>{error}</Text>
+      </View>
+    );
+  }
+
+  if (!messagesEnabled) {
+    return (
+      <View style={styles.stateWrap}>
+        <Text style={styles.stateTitle}>Messages hidden</Text>
+        <Text style={styles.stateText}>
+          This page is currently silenced in the app and can be re-enabled when you are ready.
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={g.screen}>
-
-      {!hasYouTube ? (
-        <MessagesPlaceholder />
-      ) : (
-        <>
-          {loading && <ActivityIndicator />}
-
-          {!loading && items.length === 0 && (
-            <View style={[g.card, { alignItems: 'center' }]}>
-              <Text style={[g.p, { textAlign: 'center', marginTop: 6 }]}>
-                New messages will appear here soon.
-              </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL(
-                    config.youtubeChannelId
-                      ? `https://www.youtube.com/channel/${config.youtubeChannelId}`
-                      : 'https://www.youtube.com'
-                  )
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Visit our YouTube channel"
-                style={{
-                  marginTop: 12,
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
-                  backgroundColor: '#B3282D',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="logo-youtube" size={28} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {!loading && items.length > 0 && (
-            <FlatList
-              data={items}
-              keyExtractor={(i, idx) =>
-                typeof i.id === 'string' ? i.id : i.id?.videoId || String(idx)
-              }
-              renderItem={({ item }) => {
-                const vid = typeof item.id === 'string' ? item.id : item.id?.videoId;
-                const thumb =
-                  item.snippet?.thumbnails?.high?.url ||
-                  item.snippet?.thumbnails?.medium?.url;
-
-                return (
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (vid) Linking.openURL(`https://www.youtube.com/watch?v=${vid}`);
-                    }}
-                  >
-                    <View style={g.card}>
-                      {thumb ? (
-                        <Image
-                          source={{ uri: thumb }}
-                          style={{ width: '100%', height: 180, borderRadius: 12, marginBottom: 8 }}
-                        />
-                      ) : null}
-                      <Text style={g.p}>{item.snippet?.title}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          )}
-        </>
+    <FlatList
+      data={messages}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.list}
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <Text style={styles.eyebrow}>Messages</Text>
+          <Text style={styles.heading}>LATEST{'\n'}MESSAGES</Text>
+          <Text style={styles.subheading}>
+            Teaching and sermons from The Life Place, shaped around seeing Jesus clearly.
+          </Text>
+        </View>
+      }
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={styles.card}
+          onPress={() => {
+            const watchUrl = getMessageWatchUrl(item);
+            if (watchUrl) Linking.openURL(watchUrl);
+          }}
+        >
+          <Image source={{ uri: item.thumbnail }} style={styles.image} resizeMode="cover" />
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.meta}>
+            {item.preacher} • {new Date(item.date).toLocaleDateString()}
+          </Text>
+          {item.description ? (
+            <Text numberOfLines={3} style={styles.description}>
+              {item.description}
+            </Text>
+          ) : null}
+        </TouchableOpacity>
       )}
-    </View>
+      ListEmptyComponent={
+        <View style={styles.stateWrap}>
+          <Text style={styles.stateText}>No messages are available yet.</Text>
+        </View>
+      }
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  list: {
+    padding: 22,
+    gap: 14,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    paddingBottom: 18,
+    alignItems: 'center',
+  },
+  eyebrow: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 13,
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 2.2,
+  },
+  heading: {
+    marginTop: 10,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 36,
+    lineHeight: 38,
+    color: '#111827',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  subheading: {
+    marginTop: 10,
+    maxWidth: 320,
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 15,
+    lineHeight: 23,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 14,
+  },
+  image: {
+    width: '100%',
+    height: 190,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  title: {
+    marginTop: 12,
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 18,
+    color: '#111827',
+  },
+  meta: {
+    marginTop: 6,
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  description: {
+    marginTop: 8,
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#4B5563',
+  },
+  stateWrap: {
+    flex: 1,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    gap: 8,
+  },
+  stateTitle: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 18,
+    color: '#111827',
+  },
+  stateText: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+});

@@ -1,76 +1,77 @@
-// app/(tabs)/community.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ImageBackground,
   ScrollView,
-  Alert,
-  Linking,
-  Modal,
-  TouchableWithoutFeedback,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useBootstrap } from '~/hooks/useBootstrap';
+import AppIcon, { AppIconName } from '~/components/AppIcon';
 
-const IMG = {
-  welcome: require('../../assets/community-welcome.jpg'),
-  about: require('../../assets/sandton-skyline.jpg'),
-  ministries: require('../../assets/community-ministries2.jpg'),
-  give: require('../../assets/community-give-2.jpg'),
-  messages: require('../../assets/community-preach.jpg'),
-  follow: require('../../assets/community-follow.jpg'),
-};
-
-type Item = {
-  label: string;
-  url: string;
-  icon: string;
-  pack?: 'ion' | 'mci';
-};
-
-const LINKS: Item[] = [
-  { label: 'Facebook',       url: 'https://facebook.com/thelifeplacesa', icon: 'logo-facebook', pack: 'ion' },
-  { label: 'Instagram',      url: 'https://instagram.com/thelifeplacesa', icon: 'logo-instagram', pack: 'ion' },
-  { label: 'YouTube',        url: 'https://youtube.com/@thelifeplacesa', icon: 'logo-youtube',  pack: 'ion' },
-  // ✅ Use MaterialCommunityIcons for the true Spotify glyph
-  { label: 'Spotify',        url: 'https://open.spotify.com/show/31hbtgq5cvmqr4tyzs2faygvrzaa?si=61b073370e034f21', icon: 'spotify', pack: 'mci' },
-  { label: 'Apple Podcasts', url: 'https://podcasts.apple.com/us/podcast/the-life-place/id1816955719', icon: 'logo-apple', pack: 'ion' },
-];
-
-function RenderIcon({ item, color = '#FFFFFF' }: { item: Item; color?: string }) {
-  if (item.pack === 'mci') {
-    return <MaterialCommunityIcons name={item.icon as any} size={22} color={color} />;
-  }
-  return <Ionicons name={item.icon as any} size={22} color={color} />;
-}
+const BRAND_RED = '#B3282D';
+const INK = '#111827';
+const MUTED = '#6B7280';
+const SURFACE = '#F9FAFB';
 
 export default function Community() {
   const router = useRouter();
-  const [sheetOpen, setSheetOpen] = useState(false);
-
-  const openUrl = async (url: string, label: string) => {
-    try {
-      const ok = await Linking.canOpenURL(url);
-      if (!ok) return Alert.alert('Could not open link', `${label} is not supported on this device.`);
-      await Linking.openURL(url);
-      setSheetOpen(false);
-    } catch {
-      Alert.alert('Something went wrong', 'Please try again.');
-    }
-  };
+  const { data } = useBootstrap();
 
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Tile title="OUR WELCOME" image={IMG.welcome} onPress={() => router.push('/our-welcome')} />
-        <Tile title="ABOUT US" image={IMG.about} onPress={() => router.push('/about')} />
-        <Tile title="MINISTRIES" image={IMG.ministries} onPress={() => router.push('/ministries')} />
-        <Tile title="GENEROSITY" image={IMG.give} onPress={() => router.push('/generosity')} />
-        <Tile title="MESSAGES" image={IMG.messages} onPress={() => router.push('/messages')} />
-        <Tile title="FOLLOW US" image={IMG.follow} onPress={() => setSheetOpen(true)} />
+        <View style={styles.header}>
+          <Text style={styles.eyebrow}>Community</Text>
+          <Text style={styles.heading}>Find your next step.</Text>
+          <Text style={styles.subheading}>
+            Explore the front-facing pages of the app through a quieter icon-first directory.
+          </Text>
+        </View>
+
+        <View style={styles.tileGrid}>
+          <Tile
+            title="OUR WELCOME"
+            subtitle="How we open wide our doors."
+            icon="hand-holding-heart"
+            onPress={() => router.push('/our-welcome')}
+          />
+          <Tile
+            title="ABOUT US"
+            subtitle="What shapes life at The Life Place."
+            icon="book-open"
+            onPress={() => router.push('/about')}
+          />
+          <Tile
+            title="VISIT US"
+            subtitle="When, where, and how to find us."
+            icon="location-dot"
+            onPress={() => router.push('/visit')}
+          />
+          <Tile
+            title="BLOG"
+            subtitle="Writing, reflections, and recent posts."
+            icon="newspaper"
+            onPress={() => router.push('/blog')}
+          />
+        {data?.features.ministriesEnabled ? (
+            <Tile
+              title="MINISTRIES"
+              subtitle="Communities and church life."
+              icon="people-group"
+              onPress={() => router.push('/ministries')}
+            />
+        ) : null}
+        {data?.features.messagesEnabled ? (
+            <Tile
+              title="MESSAGES"
+              subtitle="Teaching and recent sermons."
+              icon="youtube"
+              onPress={() => router.push('/messages')}
+            />
+        ) : null}
+        </View>
 
         <View style={styles.privacyRow}>
           <Link href="/privacy" asChild>
@@ -80,127 +81,130 @@ export default function Community() {
           </Link>
         </View>
       </ScrollView>
-
-      {/* Modal with round icon buttons (icons only, no labels) */}
-      <Modal
-        visible={sheetOpen}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSheetOpen(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setSheetOpen(false)}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
-
-        <View style={styles.sheet}>
-          <View style={styles.grabber} />
-
-          <View style={styles.iconGrid}>
-            {LINKS.map((item) => (
-              <TouchableOpacity
-                key={item.label}
-                onPress={() => openUrl(item.url, item.label)}
-                activeOpacity={0.9}
-                style={styles.circle}
-                accessibilityRole="button"
-                accessibilityLabel={item.label}
-              >
-                <RenderIcon item={item} />
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <TouchableOpacity style={styles.closeBtn} onPress={() => setSheetOpen(false)}>
-            <Text style={styles.closeText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
     </View>
   );
 }
 
 function Tile({
   title,
-  image,
+  subtitle,
+  icon,
   onPress,
 }: {
   title: string;
-  image: any;
+  subtitle: string;
+  icon: AppIconName;
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
-      <ImageBackground source={image} style={styles.tile} imageStyle={styles.tileImage} resizeMode="cover">
-        <View style={styles.overlay} />
-        <View style={styles.center}>
-          <Text style={styles.tileTitle}>{title}</Text>
-        </View>
-      </ImageBackground>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.tile}>
+      <View style={styles.iconBadge}>
+        <AppIcon name={icon} size={28} color={BRAND_RED} />
+      </View>
+      <Text style={styles.tileTitle}>{title}</Text>
+      <Text style={styles.tileSubtitle}>{subtitle}</Text>
+      <View style={styles.tileFooter}>
+        <Text style={styles.tileAction}>Open</Text>
+        <AppIcon name="forward" size={16} color={BRAND_RED} />
+      </View>
     </TouchableOpacity>
   );
 }
 
-const CIRCLE = 56;
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFFFFF' },
-  content: { paddingBottom: 60 },
-
-  tile: { height: 160, justifyContent: 'center', alignItems: 'center' },
-  tileImage: { opacity: 0.85, borderRadius: 0 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.22)' },
-  center: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16 },
-  tileTitle: { color: '#FFFFFF', fontFamily: 'Montserrat-Bold', fontSize: 24, textAlign: 'center', letterSpacing: 3.2 },
-
-  privacyRow: { marginTop: 8, alignItems: 'flex-end', paddingHorizontal: 12 },
-  privacy: { color: '#6B7280', fontFamily: 'Montserrat-Medium', fontSize: 12, textDecorationLine: 'underline' },
-
-  // Modal sheet
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
-  sheet: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    position: 'absolute',
-    left: 0, right: 0, bottom: 0,
-  },
-  grabber: {
-    alignSelf: 'center',
-    width: 44,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#E5E7EB',
-    marginBottom: 8,
-  },
-
-  iconGrid: {
-    marginTop: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  circle: {
-    width: CIRCLE,
-    height: CIRCLE,
-    borderRadius: CIRCLE / 2,
-    backgroundColor: '#000000',
+  content: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 60 },
+  header: {
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingBottom: 18,
+  },
+  eyebrow: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 13,
+    letterSpacing: 2.2,
+    textTransform: 'uppercase',
+    color: MUTED,
+  },
+  heading: {
+    marginTop: 10,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 38,
+    lineHeight: 40,
+    color: INK,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  subheading: {
+    marginTop: 10,
+    maxWidth: 320,
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 15,
+    lineHeight: 23,
+    color: MUTED,
+    textAlign: 'center',
+  },
+  tileGrid: {
+    gap: 14,
+  },
+  tile: {
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    backgroundColor: SURFACE,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
-
-  closeBtn: {
-    marginTop: 14,
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#F3F4F6',
+  iconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: 'rgba(179,40,45,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
-  closeText: { fontFamily: 'Montserrat-Medium', color: '#111827' },
+  tileTitle: {
+    color: INK,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 22,
+    lineHeight: 28,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  tileSubtitle: {
+    marginTop: 8,
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 15,
+    lineHeight: 22,
+    color: MUTED,
+    textAlign: 'center',
+  },
+  tileFooter: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  tileAction: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 13,
+    color: BRAND_RED,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+  },
+  privacyRow: { marginTop: 8, alignItems: 'flex-end', paddingHorizontal: 12 },
+  privacy: {
+    color: MUTED,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 12,
+    textDecorationLine: 'underline',
+  },
 });

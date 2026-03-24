@@ -15,8 +15,9 @@
       "buildNumber": "2",
       "splash": {
         "image": "./assets/splash-ios.png",
+        "tabletImage": "./assets/splash-ios.png",
         "resizeMode": "cover",
-        "backgroundColor": "#B3282D"
+        "backgroundColor": "#F7F6F4"
       }
     },
     "android": {
@@ -29,17 +30,19 @@
       "splash": {
         "image": "./assets/splash-android.png",
         "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#F7F6F4"
       }
     },
     "web": {
+      "output": "single",
       "bundler": "metro",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       "expo-router"
     ],
     "extra": {
+      "CONTENT_API_BASE_URL": "https://thelifeplace.org",
       "SUPABASE_URL": "https://nqjaqwtqqrbxqzlgtttk.supabase.co",
       "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xamFxd3RxcXJieHF6bGd0dHRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NDEzMDgsImV4cCI6MjA3NTQxNzMwOH0.6wPjuXIbt_5G3Zya776RQ3O8T82GkomwhFSGwo_F1Cs",
       "PRAYER_EMAIL_WEBHOOK": "https://your-domain.example/api/prayer-email",

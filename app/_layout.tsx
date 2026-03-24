@@ -1,53 +1,36 @@
 // app/_layout.tsx
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Stack, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View } from 'react-native';
 import BackButton from '../components/BackButton';
+import SiteSplash from '../components/SiteSplash';
 import { useBrandFonts } from '../hooks/useBrandFonts';
-import { Asset } from 'expo-asset';
 
 // Keep the splash visible immediately
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const SPLASH_MIN_DURATION_MS = 2000; // ← tweak this (e.g., 3000 = 3s)
-
 export default function RootLayout() {
   const fontsLoaded = useBrandFonts();
-  const startRef = useRef<number>(Date.now());
-  const [isReady, setIsReady] = useState(false);
+  const [nativeSplashHidden, setNativeSplashHidden] = useState(false);
+  const [showSiteSplash, setShowSiteSplash] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!fontsLoaded) return;
+  const handleSiteSplashFinish = useCallback(() => {
+    setShowSiteSplash(false);
+  }, []);
 
-    (async () => {
-      try {
-        // Preload the SAME image configured in app.json → expo.splash.image
-        await Asset.fromModule(require('../assets/splash-new.png')).downloadAsync();
-      } catch {
-        // ignore; the native splash will still show
-      } finally {
-        const elapsed = Date.now() - startRef.current;
-        const remaining = Math.max(SPLASH_MIN_DURATION_MS - elapsed, 0);
-        const t = setTimeout(() => {
-          if (!cancelled) {
-            setIsReady(true);
-            SplashScreen.hideAsync().catch(() => {});
-          }
-        }, remaining);
-        return () => clearTimeout(t);
-      }
-    })();
+  const onLayoutRootView = useCallback(() => {
+    if (!fontsLoaded || nativeSplashHidden) return;
 
-    return () => {
-      cancelled = true;
-    };
-  }, [fontsLoaded]);
+    SplashScreen.hideAsync()
+      .catch(() => {})
+      .finally(() => setNativeSplashHidden(true));
+  }, [fontsLoaded, nativeSplashHidden]);
 
-  if (!fontsLoaded || !isReady) return null;
+  if (!fontsLoaded) return null;
 
   return (
-    <>
+    <View style={styles.root} onLayout={onLayoutRootView}>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -59,7 +42,6 @@ export default function RootLayout() {
             fontFamily: 'Montserrat-SemiBold',
           },
           headerTintColor: '#111827',
-          headerBackTitleVisible: false,
           headerShadowVisible: false,
           headerLeft: () => <BackButton />,
         }}
@@ -76,9 +58,20 @@ export default function RootLayout() {
         <Stack.Screen name="blog" options={{ title: 'Our Blog' }} />
         <Stack.Screen name="messages" options={{ title: 'Messages' }} />
         <Stack.Screen name="our-welcome" options={{ title: 'Our Welcome' }} />
+        <Stack.Screen name="visit" options={{ title: 'Visit Us' }} />
+        <Stack.Screen name="privacy" options={{ title: 'Privacy Policy' }} />
         <Stack.Screen name="ministries/index" options={{ title: 'Ministries' }} />
         <Stack.Screen name="ministries/[slug]" options={{ title: 'Ministry' }} />
       </Stack>
-    </>
+
+      {showSiteSplash ? <SiteSplash onFinish={handleSiteSplashFinish} /> : null}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#F7F6F4',
+  },
+});
