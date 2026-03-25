@@ -77,8 +77,8 @@ export default function Home() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [whatsAppModalVisible, setWhatsAppModalVisible] = useState(false);
   const waSheetAnim = useState(new Animated.Value(0))[0];
-  const [waAnchor, setWaAnchor] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const whatsAppCardRef = useRef<View | null>(null);
+  const [waAnchorTop, setWaAnchorTop] = useState<number | null>(null);
+  const connectSectionRef = useRef<View | null>(null);
   const [activeCardId, setActiveCardId] = useState<string | null>(lastActiveHomeCardId);
   const activeStyle = HOME_STYLES.find((style) => style.id === 'glass') ?? HOME_STYLES[0];
   const appVersion = Constants.expoConfig?.version || '0.1.0';
@@ -161,14 +161,12 @@ export default function Home() {
     });
   };
 
-  const measureWhatsAppAnchor = () =>
-    new Promise<{ x: number; y: number; w: number; h: number } | null>((resolve) => {
-      const node = whatsAppCardRef.current;
+  const measureConnectAnchor = () =>
+    new Promise<number | null>((resolve) => {
+      const node = connectSectionRef.current;
       if (!node) return resolve(null);
       requestAnimationFrame(() => {
-        node.measureInWindow((x: number, y: number, w: number, h: number) =>
-          resolve({ x, y, w, h })
-        );
+        node.measureInWindow((_x: number, y: number, _w: number, h: number) => resolve(y + h + 8));
       });
     });
 
@@ -204,12 +202,8 @@ export default function Home() {
     }
 
     if (Platform.OS === 'ios') {
-      let anchor = await measureWhatsAppAnchor();
-      if (!anchor) {
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-        anchor = await measureWhatsAppAnchor();
-      }
-      if (anchor) setWaAnchor(anchor);
+      const anchorTop = await measureConnectAnchor();
+      if (anchorTop !== null) setWaAnchorTop(anchorTop);
       setWhatsAppModalVisible(true);
       waSheetAnim.setValue(0);
       Animated.timing(waSheetAnim, {
@@ -278,19 +272,20 @@ export default function Home() {
             onPress={() => setHomeActiveCard('what-we-do')}
           />
 
-          <CardSurface
-            theme={activeStyle}
-            style={styles.sectionCard}
-            backgroundColor={activeStyle.card}
-            borderColor={activeStyle.borderStrong}
-            borderRadius={activeStyle.radiusCard}
-            shadowColor={activeStyle.shadow}
-          >
-            <View
-              style={[
-                styles.sectionLabelCard,
-                {
-                  backgroundColor: activeStyle.cardAlt,
+          <View ref={connectSectionRef} collapsable={false}>
+            <CardSurface
+              theme={activeStyle}
+              style={styles.sectionCard}
+              backgroundColor={activeStyle.card}
+              borderColor={activeStyle.borderStrong}
+              borderRadius={activeStyle.radiusCard}
+              shadowColor={activeStyle.shadow}
+            >
+              <View
+                style={[
+                  styles.sectionLabelCard,
+                  {
+                    backgroundColor: activeStyle.cardAlt,
                   borderColor: activeStyle.borderStrong,
                 },
               ]}
@@ -361,20 +356,21 @@ export default function Home() {
               ) : null}
             </View>
 
-            <View style={styles.contactSingleRow}>
-              <ContactCard
-                icon="share-nodes"
-                label="Follow Us"
-                value="Social channels"
+              <View style={styles.contactSingleRow}>
+                <ContactCard
+                  icon="share-nodes"
+                  label="Follow Us"
+                  value="Social channels"
                 theme={activeStyle}
                 active={activeCardId === 'follow'}
                 onPress={() => {
                   setHomeActiveCard('follow');
                   setSheetOpen(true);
                 }}
-              />
-            </View>
-          </CardSurface>
+                />
+              </View>
+            </CardSurface>
+          </View>
 
           <PageSlogan inverse />
 
@@ -477,9 +473,9 @@ export default function Home() {
                 styles.waModalCard,
                 {
                   position: 'absolute',
-                  left: waAnchor ? waAnchor.x : PAGE_PADDING,
-                  top: waAnchor ? waAnchor.y + waAnchor.h + 8 : 200,
-                  width: waAnchor ? waAnchor.w : undefined,
+                  left: PAGE_PADDING,
+                  right: PAGE_PADDING,
+                  top: waAnchorTop ?? 200,
                   backgroundColor: activeStyle.card,
                   borderColor: activeStyle.borderStrong,
                   shadowColor: activeStyle.shadow,
