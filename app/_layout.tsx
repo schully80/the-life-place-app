@@ -2,9 +2,10 @@
 import { useCallback, useState } from 'react';
 import { Stack, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { AppAppearanceProvider, useAppAppearance } from '../components/AppAppearanceProvider';
 import BackButton from '../components/BackButton';
+import IosStackHeader from '../components/IosStackHeader';
 import ScreenLightingOverlay from '../components/ScreenLightingOverlay';
 import SiteSplash from '../components/SiteSplash';
 import { useBrandFonts } from '../hooks/useBrandFonts';
@@ -49,14 +50,16 @@ function RootLayoutContent() {
         screenOptions={{
           headerShown: true,
           headerStyle: { backgroundColor: '#FFFFFF' },
+          headerTitleAlign: 'center',
           headerTitleStyle: {
             color: '#111827',
             fontSize: 18,
             fontFamily: 'Montserrat-Bold',
           },
+          header: Platform.OS === 'ios' ? (props) => <IosStackHeader {...props} /> : undefined,
           headerTintColor: '#111827',
           headerShadowVisible: false,
-          headerLeft: () => <BackButton />,
+          headerLeft: Platform.OS !== 'ios' ? () => <BackButton /> : undefined,
         }}
       >
         {/* Tabs group should not show a header */}

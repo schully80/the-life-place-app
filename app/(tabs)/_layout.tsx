@@ -5,15 +5,10 @@ import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useBrandFonts } from '../../hooks/useBrandFonts';
 import PrivacyBanner from '../../components/PrivacyBanner';
-import BackButton from '../../components/BackButton';
 import AppIcon from '../../components/AppIcon';
 
 const TAB_ICON_ACTIVE = '#F05B69';
 const TAB_ICON_INACTIVE = '#B9C5D6';
-
-function BackToCommunityGlass() {
-  return <BackButton glass fallbackTo="/community" />;
-}
 
 export default function TabsLayout() {
   const fontsLoaded = useBrandFonts();
@@ -25,6 +20,7 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: true,
           headerStyle: { backgroundColor: '#FFFFFF' },
+          headerTitleAlign: 'center',
           headerTitleStyle: {
             color: '#111827',
             fontSize: 18,
@@ -121,7 +117,6 @@ export default function TabsLayout() {
           name="generosity"
           options={{
             title: 'GENEROSITY',
-            headerLeft: () => <BackToCommunityGlass />,
             tabBarLabel: 'Give',
             tabBarIcon: ({ focused }) => (
               <AppIcon

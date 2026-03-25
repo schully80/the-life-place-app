@@ -15,7 +15,9 @@
       "buildNumber": "2",
       "infoPlist": {
         "LSApplicationQueriesSchemes": [
-          "mailto"
+          "mailto",
+          "whatsapp",
+          "whatsapp-business"
         ]
       },
       "splash": {

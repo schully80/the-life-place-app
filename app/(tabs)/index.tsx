@@ -1,8 +1,12 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import {
+  Alert,
+  Animated,
+  Easing,
   Image,
   Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,8 +27,8 @@ import PageSlogan from '~/components/PageSlogan';
 import { useBootstrap } from '~/hooks/useBootstrap';
 import {
   getCanonicalSocials,
-  getCanonicalWhatsAppUrl,
-  getWhatsAppAppUrl,
+  getWhatsAppAppUrls,
+  getWhatsAppClickToChatUrl,
 } from '~/lib/contentApi';
 import { openExternalUrl } from '~/lib/externalLinks';
 import { HOME_STYLES, type HomeStyle } from '~/lib/homeDesignStyles';
@@ -71,6 +75,10 @@ export default function Home() {
   const { resolvedAppearance, setPreference } = useAppAppearance();
   const { data: bootstrap } = useBootstrap();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [whatsAppModalVisible, setWhatsAppModalVisible] = useState(false);
+  const waSheetAnim = useState(new Animated.Value(0))[0];
+  const [waAnchor, setWaAnchor] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const whatsAppCardRef = useRef<View | null>(null);
   const [activeCardId, setActiveCardId] = useState<string | null>(lastActiveHomeCardId);
   const activeStyle = HOME_STYLES.find((style) => style.id === 'glass') ?? HOME_STYLES[0];
   const appVersion = Constants.expoConfig?.version || '0.1.0';
@@ -153,20 +161,75 @@ export default function Home() {
     });
   };
 
-  const openWhatsAppUrl = async (url?: string) => {
-    const webUrl = getCanonicalWhatsAppUrl(url);
-    const appUrl = getWhatsAppAppUrl(url);
+  const measureWhatsAppAnchor = () =>
+    new Promise<{ x: number; y: number; w: number; h: number } | null>((resolve) => {
+      const node = whatsAppCardRef.current;
+      if (!node) return resolve(null);
+      requestAnimationFrame(() => {
+        node.measureInWindow((x: number, y: number, w: number, h: number) =>
+          resolve({ x, y, w, h })
+        );
+      });
+    });
 
-    try {
-      await Linking.openURL(appUrl);
-    } catch {
-      await openUrl(webUrl, 'WhatsApp');
+  const openWhatsAppUrl = async (url?: string) => {
+    const webUrl = getWhatsAppClickToChatUrl(url, Platform.OS === 'ios' ? 'ios' : 'android');
+    const appUrls = getWhatsAppAppUrls(url);
+
+    if (__DEV__) {
+      console.log('[WhatsApp] open request', {
+        platform: Platform.OS,
+        rawUrl: url ?? null,
+        webUrl,
+        appUrls,
+      });
     }
+
+    for (const appUrl of appUrls) {
+      try {
+        await Linking.openURL(appUrl);
+        if (__DEV__) {
+          console.log('[WhatsApp] app link opened', { platform: Platform.OS, appUrl });
+        }
+        return;
+      } catch (error) {
+        if (__DEV__) {
+          console.log('[WhatsApp] app link failed', {
+            platform: Platform.OS,
+            appUrl,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+
+    if (Platform.OS === 'ios') {
+      let anchor = await measureWhatsAppAnchor();
+      if (!anchor) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        anchor = await measureWhatsAppAnchor();
+      }
+      if (anchor) setWaAnchor(anchor);
+      setWhatsAppModalVisible(true);
+      waSheetAnim.setValue(0);
+      Animated.timing(waSheetAnim, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+
+    await openUrl(webUrl, 'WhatsApp');
   };
 
   const blogUrl = bootstrap?.links.blogUrl || 'https://schulteretyang.substack.com';
   const blogSubscribeUrl = `${blogUrl.replace(/\/+$/, '')}/subscribe`;
-  const whatsappUrl = getCanonicalWhatsAppUrl(bootstrap?.contact.whatsapp);
+  const whatsappUrl = getWhatsAppClickToChatUrl(
+    bootstrap?.contact.whatsapp,
+    Platform.OS === 'ios' ? 'ios' : 'android'
+  );
 
   return (
     <View style={styles.screen}>
@@ -402,6 +465,72 @@ export default function Home() {
           </Pressable>
         </View>
       </Modal>
+
+      {Platform.OS === 'ios' && whatsAppModalVisible && (
+        <Pressable
+          style={styles.waModalBackdrop}
+          onPress={() => setWhatsAppModalVisible(false)}
+        >
+          <TouchableWithoutFeedback>
+            <Animated.View
+              style={[
+                styles.waModalCard,
+                {
+                  position: 'absolute',
+                  left: waAnchor ? waAnchor.x : PAGE_PADDING,
+                  top: waAnchor ? waAnchor.y + waAnchor.h + 8 : 200,
+                  width: waAnchor ? waAnchor.w : undefined,
+                  backgroundColor: activeStyle.card,
+                  borderColor: activeStyle.borderStrong,
+                  shadowColor: activeStyle.shadow,
+                  transform: [
+                    {
+                      translateY: waSheetAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-12, 0],
+                      }),
+                    },
+                  ],
+                  opacity: waSheetAnim,
+                },
+              ]}
+            >
+              <Text style={[styles.waModalBody, { color: activeStyle.textSecondary }]}>
+                Copy the number and paste it in WhatsApp.
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.waModalAction,
+                  {
+                    backgroundColor: activeStyle.accent,
+                    shadowColor: activeStyle.shadow,
+                  },
+                ]}
+                onPress={async () => {
+                  try {
+                    const Clipboard = await import('expo-clipboard');
+                    await Clipboard.setStringAsync('27765639460');
+                  } catch {
+                    // ignore
+                  } finally {
+                    Animated.timing(waSheetAnim, {
+                      toValue: 0,
+                      duration: 180,
+                      easing: Easing.in(Easing.quad),
+                      useNativeDriver: true,
+                    }).start(() => setWhatsAppModalVisible(false));
+                  }
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Copy WhatsApp number"
+                activeOpacity={0.9}
+              >
+                  <Text style={styles.waModalActionText}>Copy</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -946,6 +1075,45 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
+  },
+  waModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    justifyContent: 'flex-start',
+    paddingTop: 180,
+    paddingHorizontal: PAGE_PADDING,
+  },
+  waModalCard: {
+    width: '100%',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  waModalBody: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 15,
+    lineHeight: 21,
+    marginBottom: 14,
+    paddingRight: 0,
+  },
+  waModalAction: {
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    alignSelf: 'center',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  waModalActionText: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 16,
+    color: '#fff',
   },
   sheet: {
     position: 'absolute',

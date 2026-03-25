@@ -1,4 +1,4 @@
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import BackButton from '../../components/BackButton';
 import { useBootstrap } from '~/hooks/useBootstrap';
@@ -26,7 +26,7 @@ export default function MinistryDetail() {
       <Stack.Screen
         options={{
           title: ministry?.title || 'Ministry',
-          headerLeft: () => <BackButton glass fallbackTo="/ministries" />,
+          headerLeft: Platform.OS === 'android' ? () => <BackButton glass fallbackTo="/ministries" /> : undefined,
         }}
       />
       {loading ? (

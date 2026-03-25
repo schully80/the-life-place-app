@@ -47,6 +47,8 @@
     <key>LSApplicationQueriesSchemes</key>
     <array>
       <string>mailto</string>
+      <string>whatsapp</string>
+      <string>whatsapp-business</string>
     </array>
     <key>NSAppTransportSecurity</key>
     <dict>

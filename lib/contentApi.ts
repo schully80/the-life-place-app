@@ -170,10 +170,10 @@ export type BootstrapPayload = {
 
 const DEFAULT_WHATSAPP_NUMBER = '27765639460';
 const DEFAULT_WHATSAPP_MESSAGE = "Hi The Life Place, I'd love to get in touch.";
-const DEFAULT_WHATSAPP_URL = `https://wa.me/${DEFAULT_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+const DEFAULT_WHATSAPP_URL = `https://wa.me/${DEFAULT_WHATSAPP_NUMBER}?text=${encodeQueryValue(
   DEFAULT_WHATSAPP_MESSAGE
 )}`;
-const DEFAULT_WHATSAPP_APP_URL = `whatsapp://send?phone=${DEFAULT_WHATSAPP_NUMBER}&text=${encodeURIComponent(
+const DEFAULT_WHATSAPP_APP_URL = `whatsapp://send?phone=${DEFAULT_WHATSAPP_NUMBER}&text=${encodeQueryValue(
   DEFAULT_WHATSAPP_MESSAGE
 )}`;
 const DEFAULT_CONTACT_EMAIL = 'hello@thelifeplace.org';
@@ -381,9 +381,32 @@ export function getMessageWatchUrl(message: MessageItem) {
 }
 
 export function getCanonicalWhatsAppUrl(url?: string) {
-  if (!url) return DEFAULT_WHATSAPP_URL;
-  if (/X{3,}/i.test(url)) return DEFAULT_WHATSAPP_URL;
-  return url;
+  const target = getWhatsAppTarget(url);
+  return `https://wa.me/${target.phone}?text=${encodeQueryValue(target.text)}`;
+}
+
+export function getWhatsAppClickToChatUrl(
+  url?: string,
+  platform: 'ios' | 'android' | 'web' = 'web'
+) {
+  const target = getWhatsAppTarget(url);
+
+  if (platform === 'ios') {
+    // Keep iOS web fallback minimal; some Safari builds reject additional params when handing off.
+    return `https://wa.me/${target.phone}`;
+  }
+
+  return `https://wa.me/${target.phone}?text=${encodeQueryValue(target.text)}`;
+}
+
+export function getWhatsAppAppUrls(url?: string) {
+  const target = getWhatsAppTarget(url);
+  const query = `phone=${target.phone}&text=${encodeQueryValue(target.text)}`;
+
+  return [
+    `whatsapp://send?${query}`,
+    `whatsapp-business://send?${query}`,
+  ];
 }
 
 export function getCanonicalContactEmail(email?: string) {
@@ -425,10 +448,73 @@ export function getCanonicalPrimaryService(
 }
 
 export function getWhatsAppAppUrl(url?: string) {
-  const canonicalUrl = getCanonicalWhatsAppUrl(url);
-  const match = canonicalUrl.match(/wa\.me\/([^?]+)(?:\?text=(.*))?/i);
-  if (!match) return DEFAULT_WHATSAPP_APP_URL;
+  const target = getWhatsAppTarget(url);
+  return `whatsapp://send?phone=${target.phone}&text=${encodeQueryValue(target.text)}`;
+}
 
-  const [, phone, text = ''] = match;
-  return `whatsapp://send?phone=${phone}&text=${text}`;
+function encodeQueryValue(value: string) {
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+}
+
+function sanitizeWhatsAppPhone(phone?: string | null) {
+  const sanitized = (phone || '').replace(/[^\d]/g, '');
+  return sanitized || DEFAULT_WHATSAPP_NUMBER;
+}
+
+function getWhatsAppTarget(url?: string) {
+  if (!url || /X{3,}/i.test(url)) {
+    return {
+      phone: DEFAULT_WHATSAPP_NUMBER,
+      text: DEFAULT_WHATSAPP_MESSAGE,
+    };
+  }
+
+  const trimmedUrl = url.trim();
+
+  if (/^\+?[\d\s()-]+$/.test(trimmedUrl)) {
+    return {
+      phone: sanitizeWhatsAppPhone(trimmedUrl),
+      text: DEFAULT_WHATSAPP_MESSAGE,
+    };
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedUrl);
+    const protocol = parsedUrl.protocol.toLowerCase();
+    const hostname = parsedUrl.hostname.replace(/^www\./i, '').toLowerCase();
+
+    if (protocol === 'whatsapp:') {
+      return {
+        phone: sanitizeWhatsAppPhone(parsedUrl.searchParams.get('phone')),
+        text: parsedUrl.searchParams.get('text') || DEFAULT_WHATSAPP_MESSAGE,
+      };
+    }
+
+    if (hostname === 'wa.me') {
+      return {
+        phone: sanitizeWhatsAppPhone(parsedUrl.pathname.replace(/^\/+/, '')),
+        text: parsedUrl.searchParams.get('text') || DEFAULT_WHATSAPP_MESSAGE,
+      };
+    }
+
+    if (hostname === 'api.whatsapp.com') {
+      return {
+        phone: sanitizeWhatsAppPhone(parsedUrl.searchParams.get('phone')),
+        text: parsedUrl.searchParams.get('text') || DEFAULT_WHATSAPP_MESSAGE,
+      };
+    }
+  } catch {
+    return {
+      phone: DEFAULT_WHATSAPP_NUMBER,
+      text: DEFAULT_WHATSAPP_MESSAGE,
+    };
+  }
+
+  return {
+    phone: DEFAULT_WHATSAPP_NUMBER,
+    text: DEFAULT_WHATSAPP_MESSAGE,
+  };
 }
