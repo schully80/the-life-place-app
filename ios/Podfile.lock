@@ -4,7 +4,7 @@ PODS:
   - EXConstants (18.0.13):
     - ExpoModulesCore
   - EXJSONUtils (0.15.0)
-  - EXManifests (1.0.8):
+  - EXManifests (1.0.10):
     - ExpoModulesCore
   - Expo (54.0.31):
     - ExpoModulesCore
@@ -31,15 +31,15 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - expo-dev-client (6.0.17):
+  - expo-dev-client (6.0.20):
     - EXManifests
     - expo-dev-launcher
     - expo-dev-menu
     - expo-dev-menu-interface
     - EXUpdatesInterface
-  - expo-dev-launcher (6.0.17):
+  - expo-dev-launcher (6.0.20):
     - EXManifests
-    - expo-dev-launcher/Main (= 6.0.17)
+    - expo-dev-launcher/Main (= 6.0.20)
     - expo-dev-menu
     - expo-dev-menu-interface
     - ExpoModulesCore
@@ -68,7 +68,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - expo-dev-launcher/Main (6.0.17):
+  - expo-dev-launcher/Main (6.0.20):
     - EXManifests
     - expo-dev-launcher/Unsafe
     - expo-dev-menu
@@ -99,7 +99,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - expo-dev-launcher/Unsafe (6.0.17):
+  - expo-dev-launcher/Unsafe (6.0.20):
     - EXManifests
     - expo-dev-menu
     - expo-dev-menu-interface
@@ -129,9 +129,9 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - expo-dev-menu (7.0.16):
-    - expo-dev-menu/Main (= 7.0.16)
-    - expo-dev-menu/ReactNativeCompatibles (= 7.0.16)
+  - expo-dev-menu (7.0.18):
+    - expo-dev-menu/Main (= 7.0.18)
+    - expo-dev-menu/ReactNativeCompatibles (= 7.0.18)
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -154,7 +154,7 @@ PODS:
     - ReactNativeDependencies
     - Yoga
   - expo-dev-menu-interface (2.0.0)
-  - expo-dev-menu/Main (7.0.16):
+  - expo-dev-menu/Main (7.0.18):
     - EXManifests
     - expo-dev-menu-interface
     - ExpoModulesCore
@@ -180,7 +180,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - expo-dev-menu/ReactNativeCompatibles (7.0.16):
+  - expo-dev-menu/ReactNativeCompatibles (7.0.18):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2412,11 +2412,11 @@ SPEC CHECKSUMS:
   EASClient: 68127f1248d2b25fdc82dbbfb17be95d1c4700be
   EXConstants: fce59a631a06c4151602843667f7cfe35f81e271
   EXJSONUtils: 1d3e4590438c3ee593684186007028a14b3686cd
-  EXManifests: 224345a575fca389073c416297b6348163f28d1a
+  EXManifests: a8d97683e5c7a3b026ffbd58559c64dc655b747b
   Expo: 04993fbd7b06dc98ffac58da8847298470dc3db1
-  expo-dev-client: b6e7b4f4063ae44b5e68cc6a8bcc0c79c3037c1a
-  expo-dev-launcher: c8813e0064e8768d676ee490c0f7ef1784d70b98
-  expo-dev-menu: 0a1194185c9eec1da0e507b734180775363be442
+  expo-dev-client: 425ee077d6754a98cfe3a2e2410d29b440b24c9d
+  expo-dev-launcher: a4f4cdef064ab1fb8621e5b8c7c457cd6e9568c3
+  expo-dev-menu: 05b18812110c175814c6af0d09dd658abcc5e00d
   expo-dev-menu-interface: 600df12ea01efecdd822daaf13cc0ac091775533
   ExpoAsset: f867e55ceb428aab99e1e8c082b5aee7c159ea18
   ExpoBlur: 2dd8f64aa31f5d405652c21d3deb2d2588b1852f

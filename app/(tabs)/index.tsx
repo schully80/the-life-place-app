@@ -380,6 +380,14 @@ export default function Home() {
               <TouchableOpacity
                 activeOpacity={0.8}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={() => router.push('/privacy')}
+              >
+                <Text style={styles.legalLink}>POPIA Notice</Text>
+              </TouchableOpacity>
+              <Text style={styles.legalDivider}>•</Text>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 onPress={() => void openUrl(CANONICAL_PRIVACY_URL, 'Privacy Policy')}
               >
                 <Text style={styles.legalLink}>Privacy Policy</Text>
@@ -1046,6 +1054,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    flexWrap: 'wrap',
     gap: 10,
   },
   legalLink: {

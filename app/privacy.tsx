@@ -21,7 +21,7 @@ const OFFLINE_SUMMARY = [
   {
     title: 'Local device storage',
     body:
-      'The app stores a single flag on your device to remember whether you dismissed the privacy banner.',
+      'The app stores only the local preferences needed for the app experience, such as appearance settings and cached content.',
   },
   {
     title: 'External services you open',
@@ -52,7 +52,7 @@ export default function Privacy() {
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.h1}>Legal</Text>
           <Text style={styles.meta}>
-            Review the core legal documents for The Life Place app and website.
+            Review the core legal documents and South African privacy context for The Life Place app and website.
           </Text>
 
           <Section title="How this app handles data">
@@ -65,9 +65,18 @@ export default function Privacy() {
             </P>
           </Section>
 
+          <Section title="POPIA notice">
+            <P>
+              POPIA is South Africa's data protection framework. In this app, POPIA-related information is provided through the Privacy Policy, the Terms, and clear consent language on forms where personal information is collected.
+            </P>
+            <P>
+              The app does not use a startup consent banner anymore. Instead, legal links remain available in the app footer and on this screen whenever you need to review them.
+            </P>
+          </Section>
+
           <Section title="Legal documents">
             <P>
-              Privacy Policy explains how personal information is handled. Terms covers the rules for using the service.
+              Privacy Policy explains how personal information is handled. Terms covers the rules for using the service. Use the POPIA notice above for the South African regulatory context.
             </P>
             <Row>
               <Button

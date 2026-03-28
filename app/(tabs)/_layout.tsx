@@ -4,7 +4,6 @@ import { Tabs } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useBrandFonts } from '../../hooks/useBrandFonts';
-import PrivacyBanner from '../../components/PrivacyBanner';
 import AppIcon from '../../components/AppIcon';
 
 const TAB_ICON_ACTIVE = '#F05B69';
@@ -144,7 +143,6 @@ export default function TabsLayout() {
         />
       </Tabs>
 
-      <PrivacyBanner />
     </>
   );
 }
